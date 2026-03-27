@@ -1,0 +1,105 @@
+{
+  "nodes": [
+    {
+      "id": "BLR",
+      "name": "Bangalore",
+      "full_name": "Bangalore Hub",
+      "role": "Origin",
+      "coordinates": {
+        "lat": 12.9716,
+        "lng": 77.5946
+      },
+      "status": "active"
+    },
+    {
+      "id": "CBE",
+      "name": "Coimbatore",
+      "full_name": "Coimbatore Distribution Node",
+      "role": "Node",
+      "coordinates": {
+        "lat": 11.0168,
+        "lng": 76.9558
+      },
+      "status": "active"
+    },
+    {
+      "id": "COK",
+      "name": "Kochi",
+      "full_name": "Kochi Transit Node",
+      "role": "Node",
+      "coordinates": {
+        "lat": 9.9312,
+        "lng": 76.2673
+      },
+      "status": "active"
+    },
+    {
+      "id": "TVM",
+      "name": "Trivandrum",
+      "full_name": "Trivandrum Destination Hub",
+      "role": "Destination",
+      "coordinates": {
+        "lat": 8.5241,
+        "lng": 76.9366
+      },
+      "status": "active"
+    }
+  ],
+  "edges": [
+    {
+      "id": "E1",
+      "from": "BLR",
+      "to": "COK",
+      "distance_km": 356,
+      "estimated_time_hrs": 6.5,
+      "path": "A",
+      "label": "Bangalore → Kochi"
+    },
+    {
+      "id": "E2",
+      "from": "COK",
+      "to": "TVM",
+      "distance_km": 215,
+      "estimated_time_hrs": 4.0,
+      "path": "A",
+      "label": "Kochi → Trivandrum"
+    },
+    {
+      "id": "E3",
+      "from": "BLR",
+      "to": "CBE",
+      "distance_km": 350,
+      "estimated_time_hrs": 6.0,
+      "path": "B",
+      "label": "Bangalore → Coimbatore"
+    },
+    {
+      "id": "E4",
+      "from": "CBE",
+      "to": "TVM",
+      "distance_km": 230,
+      "estimated_time_hrs": 4.5,
+      "path": "B",
+      "label": "Coimbatore → Trivandrum"
+    }
+  ],
+  "active_shipments": [
+    {
+      "id": "SHIP-001",
+      "truck_id": "TRK-KA01AB1234",
+      "driver_name": "Ravi Kumar",
+      "origin": "BLR",
+      "destination": "TVM",
+      "current_location": "BLR",
+      "next_node": "COK",
+      "active_route": "PATH_A",
+      "route_label": "BLR → Kochi → TVM",
+      "status": "in_transit",
+      "cargo": "Electronics - High Priority",
+      "departed_at": "2026-03-27T22:00:00+05:30",
+      "estimated_arrival": "2026-03-28T08:30:00+05:30",
+      "threat_alert": null,
+      "rerouted": false
+    }
+  ]
+}
