@@ -64,7 +64,7 @@ function OriginDashboard() {
     setLoading(true);
     const t = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
     setLogs(function (prev) { return [{ t, msg: `Threat submitted: "${threatText}"` }, ...prev]; });
-    fetch('/api/threat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ threat: threatText }) })
+    fetch('/api/threat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: threatText }) })
       .catch(function () {})
       .finally(function () {
         setLoading(false); setThreatened(true); setSubmitted(true); setThreatText('');
