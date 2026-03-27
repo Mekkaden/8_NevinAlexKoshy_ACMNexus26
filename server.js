@@ -123,6 +123,15 @@ function startServer() {
     res.json(data.currentRoute);
   });
 
+  // GET node operations data (inventory + shipments)
+  app.get("/api/node", function (req, res) {
+    var data = readData();
+    res.json({
+      inventory: data.inventory || [],
+      shipments: data.active_shipments || []
+    });
+  });
+
   // Reset route (useful for demo reset)
   app.post("/api/reset", function (req, res) {
     var data = readData();

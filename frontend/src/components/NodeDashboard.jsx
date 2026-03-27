@@ -4,20 +4,6 @@ import gsap from 'gsap';
 import { Package, AlertTriangle, TruckIcon, Cpu } from 'lucide-react';
 import Layout, { Card, StatCard, SectionLabel } from './Layout';
 
-const INVENTORY = [
-  { sku: 'SKU-4421', name: 'Industrial Bearings',  qty: 340, unit: 'pcs',   status: 'nominal' },
-  { sku: 'SKU-8812', name: 'Hydraulic Fluid 5L',   qty: 88,  unit: 'cans',  status: 'low' },
-  { sku: 'SKU-2290', name: 'Control Modules',       qty: 12,  unit: 'units', status: 'critical' },
-  { sku: 'SKU-5503', name: 'Safety Mesh Rolls',     qty: 210, unit: 'rolls', status: 'nominal' },
-  { sku: 'SKU-7714', name: 'Copper Cable 50m',      qty: 54,  unit: 'reels', status: 'low' },
-];
-
-const SHIPMENTS = [
-  { id: 'SHP-001', carrier: 'TRK-007', eta: '11:30', cargo: 'Control Modules ×50',  from: 'BLR Hub' },
-  { id: 'SHP-002', carrier: 'TRK-012', eta: '14:15', cargo: 'Hydraulic Fluid ×200', from: 'CBE Depot' },
-  { id: 'SHP-003', carrier: 'TRK-009', eta: '17:00', cargo: 'Mixed Cargo 4.2T',     from: 'BLR Hub', rerouted: true },
-];
-
 const STATUS_STYLES = {
   nominal:  { color: '#10B981', bg: '#F0FDF4' },
   low:      { color: '#F59E0B', bg: '#FFFBEB' },
@@ -29,8 +15,29 @@ function NodeDashboard() {
   const [listReady, setListReady]     = useState(false);
   const [dispatchLog, setDispatchLog] = useState([]);
   const [optimizing, setOptimizing]   = useState(false);
+  const [inventory, setInventory]     = useState([]);
+  const [shipments, setShipments]     = useState([]);
 
   useEffect(function () {
+    // Fetch live inventory and shipments from backend
+    fetch('/api/node')
+      .then(r => r.json())
+      .then(data => {
+        setInventory(data.inventory || []);
+        
+        // Map backend active_shipments array format to the dashboard's format
+        const mappedShipments = (data.shipments || []).map(shp => ({
+          id: shp.id,
+          carrier: shp.truck_id,
+          eta: new Date(shp.estimated_arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          cargo: shp.cargo,
+          from: shp.origin + ' Hub',
+          rerouted: shp.rerouted
+        }));
+        setShipments(mappedShipments);
+      })
+      .catch(() => {});
+
     const ctx = gsap.context(function () {
       gsap.from('.g-stat', { opacity: 0, y: 14, stagger: 0.07, duration: 0.5 });
       gsap.from('.g-card', { opacity: 0, y: 16, stagger: 0.08, delay: 0.25, duration: 0.5 });
@@ -71,8 +78,10 @@ function NodeDashboard() {
     }
   }
 
-  const critical = INVENTORY.filter(function (i) { return i.status === 'critical'; }).length;
-  const low      = INVENTORY.filter(function (i) { return i.status === 'low'; }).length;
+        // Replace INVENTORY -> inventory
+        // Replace SHIPMENTS -> shipments
+        const critical = inventory.filter(function (i) { return i.status === 'critical'; }).length;
+        const low      = inventory.filter(function (i) { return i.status === 'low'; }).length;
 
   return (
     <Layout title="Node Operations · KOCHI-01" status="OPERATIONAL">
@@ -81,10 +90,10 @@ function NodeDashboard() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '20px' }}>
           {[
-            { label: 'Total SKUs',      value: String(INVENTORY.length), sub: 'tracked items',      accent: '#3B82F6', icon: Package },
+            { label: 'Total SKUs',      value: String(inventory.length), sub: 'tracked items',      accent: '#3B82F6', icon: Package },
             { label: 'Critical',        value: String(critical),         sub: critical ? 'reorder now' : 'none critical', accent: critical ? '#EF4444' : '#9CA3AF', icon: AlertTriangle },
             { label: 'Low Stock',       value: String(low),              sub: low ? 'monitor closely' : 'all ok', accent: low ? '#F59E0B' : '#9CA3AF', icon: Package },
-            { label: 'Incoming Today',  value: String(SHIPMENTS.length), sub: 'shipments expected', accent: '#10B981', icon: TruckIcon },
+            { label: 'Incoming Today',  value: String(shipments.length), sub: 'shipments expected', accent: '#10B981', icon: TruckIcon },
           ].map(function (s) { return <div key={s.label} className="g-stat"><StatCard {...s} /></div>; })}
         </div>
 
@@ -105,13 +114,13 @@ function NodeDashboard() {
             </div>
 
             <AnimatePresence>
-              {listReady && INVENTORY.map(function (item, i) {
+              {listReady && inventory.map(function (item, i) {
                 const s = STATUS_STYLES[item.status];
                 return (
                   <motion.div key={item.sku}
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.07, duration: 0.35 }}
-                    style={{ display: 'grid', gridTemplateColumns: '90px 1fr 64px 56px 76px', gap: '12px', padding: '13px 24px', borderBottom: i < INVENTORY.length - 1 ? '1px solid #F9F8F6' : 'none', alignItems: 'center' }}
+                    style={{ display: 'grid', gridTemplateColumns: '90px 1fr 64px 56px 76px', gap: '12px', padding: '13px 24px', borderBottom: i < inventory.length - 1 ? '1px solid #F9F8F6' : 'none', alignItems: 'center' }}
                     onMouseEnter={function (e) { e.currentTarget.style.background = '#FAFAF8'; }}
                     onMouseLeave={function (e) { e.currentTarget.style.background = 'transparent'; }}
                   >
@@ -130,12 +139,12 @@ function NodeDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <Card className="g-card">
               <SectionLabel>Incoming Today</SectionLabel>
-              {SHIPMENTS.map(function (shp, i) {
+              {shipments.map(function (shp, i) {
                 return (
                   <motion.div key={shp.id}
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 + i * 0.1 }}
-                    style={{ padding: '10px 0', borderBottom: i < SHIPMENTS.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                    style={{ padding: '10px 0', borderBottom: i < shipments.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                       <span className="mono" style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>{shp.eta}</span>
                       {shp.rerouted && <span className="mono" style={{ fontSize: '9px', color: '#F59E0B', background: '#FFFBEB', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.06em' }}>REROUTED</span>}
