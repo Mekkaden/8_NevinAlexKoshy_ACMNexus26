@@ -1,20 +1,24 @@
 /**
- * ACM NEXUS 26 – Hackathon V1 Server
- * Tech Stack: Node.js, Express, Socket.io, native 'fs' module
- * No database. Uses data.json for in-memory graph storage.
+ * ACM NEXUS 26 – Self-Healing Supply Chain – Backend Server
+ * Stack: Node.js, Express, Socket.io, Gemini AI, native 'fs'
+ * No database. data.json is the in-memory graph store.
  */
+
+require("dotenv").config();
 
 var express = require("express");
 var http = require("http");
 var socketIo = require("socket.io");
 var fs = require("fs");
 var path = require("path");
+var { GoogleGenerativeAI } = require("@google/generative-ai");
 
 var DATA_FILE = path.join(__dirname, "data.json");
 var PORT = process.env.PORT || 3001;
+var genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ─────────────────────────────────────────────
-// Helper: Read data.json from disk
+// Helper: Read data.json
 // ─────────────────────────────────────────────
 function readData() {
   var raw = fs.readFileSync(DATA_FILE, "utf8");
@@ -22,168 +26,193 @@ function readData() {
 }
 
 // ─────────────────────────────────────────────
-// Helper: Write updated data back to data.json
+// Helper: Write data.json
 // ─────────────────────────────────────────────
 function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf8");
 }
 
 // ─────────────────────────────────────────────
-// Placeholder: Simulate AI threat analysis
-// Returns the flagged city name (or null if safe)
+// AI Agent: Call Gemini to parse threat text
+// Returns { blocked_node, reason } or null
 // ─────────────────────────────────────────────
-function analyzeThreatWithAI(text) {
-  // PLACEHOLDER – In production this will call an AI/ML endpoint.
-  // For the demo we do simple keyword detection.
-  var lowerText = text.toLowerCase();
-  if (lowerText.indexOf("kochi") !== -1) {
-    return "Kochi";
+async function analyzeThreatWithGemini(text) {
+  try {
+    var model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    var prompt =
+      "You are a supply chain threat analyst AI. " +
+      "Given a threat report, identify which supply chain node is blocked. " +
+      "The known nodes are: BLR, Kochi, Coimbatore, TVM. " +
+      "Respond ONLY with a valid JSON object in this exact format: " +
+      '{ "blocked_node": "<NODE_NAME>", "reason": "<short reason>" } ' +
+      "If no known node is threatened, respond with: " +
+      '{ "blocked_node": null, "reason": "No known node affected" } ' +
+      "Threat report: " +
+      text;
+
+    var result = await model.generateContent(prompt);
+    var responseText = result.response.text().trim();
+
+    // Strip markdown code fences if Gemini wraps in ```json ... ```
+    responseText = responseText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+
+    var parsed = JSON.parse(responseText);
+    console.log("[Gemini] Response:", parsed);
+    return parsed;
+  } catch (err) {
+    console.error("[Gemini] Error:", err.message);
+    // Fallback: keyword detection
+    return fallbackAnalyze(text);
   }
-  return null;
 }
 
 // ─────────────────────────────────────────────
-// Core: Recalculate route based on blocked city
-// Hardcoded demo logic:
-//   BLR -> Kochi -> TVM  becomes  BLR -> Coimbatore -> TVM
+// Fallback: simple keyword detection
 // ─────────────────────────────────────────────
-function recalculateRoute(blockedCity, data) {
-  var original = data.currentRoute.path;
+function fallbackAnalyze(text) {
+  var lower = text.toLowerCase();
+  if (lower.indexOf("kochi") !== -1) {
+    return { blocked_node: "Kochi", reason: "Keyword match: Kochi" };
+  }
+  if (lower.indexOf("coimbatore") !== -1) {
+    return { blocked_node: "Coimbatore", reason: "Keyword match: Coimbatore" };
+  }
+  return { blocked_node: null, reason: "No known node affected" };
+}
 
-  if (blockedCity === "Kochi" && original.indexOf("Kochi") !== -1) {
+// ─────────────────────────────────────────────
+// Route recalculation (deterministic hardcode)
+// ─────────────────────────────────────────────
+function recalculateRoute(blockedNode, data) {
+  var original = data.currentRoute.path.slice();
+
+  if (blockedNode === "Kochi" && original.indexOf("Kochi") !== -1) {
     data.currentRoute.path = ["BLR", "Coimbatore", "TVM"];
     data.currentRoute.status = "rerouted";
-
-    // Log the threat in the threats array
     data.threats.push({
-      city: blockedCity,
+      city: blockedNode,
       timestamp: new Date().toISOString(),
-      action: "rerouted via Coimbatore"
+      action: "Rerouted via Coimbatore"
     });
-
     return {
       rerouted: true,
       originalPath: original,
       newPath: data.currentRoute.path,
-      blockedCity: blockedCity,
-      reason: "Kochi flagged as blocked by threat analysis"
+      blockedNode: blockedNode
     };
   }
 
-  // No change needed
   return {
     rerouted: false,
     currentPath: original,
-    blockedCity: blockedCity,
-    reason: "Current route does not pass through the flagged city"
+    blockedNode: blockedNode
   };
 }
 
 // ─────────────────────────────────────────────
-// Main: Boot the server
+// Main server boot
 // ─────────────────────────────────────────────
 function startServer() {
   var app = express();
   var httpServer = http.createServer(app);
 
-  // ── Socket.io with CORS ──────────────────────
   var io = socketIo(httpServer, {
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
-    }
+    cors: { origin: "*", methods: ["GET", "POST"] }
   });
 
-  // ── Express middleware ───────────────────────
+  // Middleware
   app.use(express.json());
-
-  // Allow cross-origin requests on all routes
   app.use(function (req, res, next) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
-    }
+    if (req.method === "OPTIONS") return res.sendStatus(200);
     next();
   });
 
-  // ── Health check ─────────────────────────────
+  // Health
   app.get("/", function (req, res) {
-    res.json({ status: "ok", message: "ACM NEXUS 26 – Supply Chain Threat Server running." });
+    res.json({ status: "ok", message: "ACM NEXUS 26 – Threat Server" });
   });
 
-  // ── GET /api/route – Return current route ────
+  // GET current route
   app.get("/api/route", function (req, res) {
     var data = readData();
     res.json(data.currentRoute);
   });
 
-  // ── POST /api/threat ─────────────────────────
-  // Body: { "text": "<threat description string>" }
-  // 1. Run (placeholder) AI analysis on the text
-  // 2. If a city is flagged, recalculate route
-  // 3. Emit Socket.io event 'route_updated' with new route
-  app.post("/api/threat", function (req, res) {
-    var body = req.body;
+  // Reset route (useful for demo reset)
+  app.post("/api/reset", function (req, res) {
+    var data = readData();
+    data.currentRoute = { path: ["BLR", "Kochi", "TVM"], status: "active" };
+    data.threats = [];
+    writeData(data);
+    io.emit("route_reset", { path: ["BLR", "Kochi", "TVM"], status: "active" });
+    res.json({ message: "Route reset to default." });
+  });
 
+  // POST threat — main AI endpoint
+  app.post("/api/threat", async function (req, res) {
+    var body = req.body;
     if (!body || typeof body.text !== "string" || body.text.trim() === "") {
-      return res.status(400).json({ error: "Request body must contain a non-empty 'text' field." });
+      return res.status(400).json({ error: "Body must have a non-empty 'text' field." });
     }
 
     var threatText = body.text.trim();
-    console.log("[POST /api/threat] Received threat text:", threatText);
+    console.log("[POST /api/threat]", threatText);
 
-    // ── Step 1: AI analysis (placeholder) ───────
-    var flaggedCity = analyzeThreatWithAI(threatText);
-    console.log("[AI] Flagged city:", flaggedCity || "none");
+    // Step 1: Gemini analysis
+    var aiResult = await analyzeThreatWithGemini(threatText);
+    var blockedNode = aiResult.blocked_node;
+    var reason = aiResult.reason;
 
-    if (!flaggedCity) {
-      return res.json({
-        message: "No actionable threat detected. Route unchanged.",
-        rerouted: false
-      });
+    if (!blockedNode) {
+      return res.json({ message: "No actionable threat detected.", rerouted: false, aiResult: aiResult });
     }
 
-    // ── Step 2: Recalculate route ────────────────
+    // Step 2: Recalculate
     var data = readData();
-    var result = recalculateRoute(flaggedCity, data);
+    var routeResult = recalculateRoute(blockedNode, data);
 
-    if (result.rerouted) {
-      // ── Step 3: Persist updated route ───────────
+    if (routeResult.rerouted) {
       writeData(data);
-      console.log("[Route] Updated:", result.newPath.join(" -> "));
+      console.log("[Route] Rerouted:", routeResult.newPath.join(" -> "));
 
-      // ── Step 4: Emit Socket.io event ─────────────
+      // Step 3: Emit Socket.io event
       io.emit("route_updated", {
-        flaggedCity: flaggedCity,
-        originalPath: result.originalPath,
-        newPath: result.newPath,
+        blockedNode: blockedNode,
+        reason: reason,
+        originalPath: routeResult.originalPath,
+        newPath: routeResult.newPath,
         status: "rerouted",
-        reason: result.reason,
         timestamp: new Date().toISOString()
       });
     }
 
-    return res.json(result);
-  });
-
-  // ── Socket.io connection log ─────────────────
-  io.on("connection", function (socket) {
-    console.log("[Socket.io] Client connected:", socket.id);
-
-    socket.on("disconnect", function () {
-      console.log("[Socket.io] Client disconnected:", socket.id);
+    return res.json({
+      aiResult: aiResult,
+      routeResult: routeResult
     });
   });
 
-  // ── Start listening ──────────────────────────
+  // Socket.io connection log
+  io.on("connection", function (socket) {
+    console.log("[Socket.io] Connected:", socket.id);
+    // Send current route on connect
+    var data = readData();
+    socket.emit("route_init", data.currentRoute);
+    socket.on("disconnect", function () {
+      console.log("[Socket.io] Disconnected:", socket.id);
+    });
+  });
+
   httpServer.listen(PORT, function () {
-    console.log("──────────────────────────────────────────");
-    console.log("  ACM NEXUS 26 – Threat Server");
-    console.log("  Listening on http://localhost:" + PORT);
-    console.log("  Socket.io ready for real-time events");
-    console.log("──────────────────────────────────────────");
+    console.log("──────────────────────────────────────────────");
+    console.log("  ACM NEXUS 26 — Self-Healing Supply Chain");
+    console.log("  Backend: http://localhost:" + PORT);
+    console.log("  Gemini AI: " + (process.env.GEMINI_API_KEY ? "CONNECTED" : "NOT SET"));
+    console.log("──────────────────────────────────────────────");
   });
 }
 
