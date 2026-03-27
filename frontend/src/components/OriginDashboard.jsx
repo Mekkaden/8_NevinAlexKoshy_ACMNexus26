@@ -59,6 +59,18 @@ function OriginDashboard() {
     return function () { ctx.revert(); };
   }, []);
 
+  // Restore threat state from server on mount (so navigation away/back doesn't reset UI)
+  useEffect(function () {
+    fetch('/api/route')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.status === 'rerouted') {
+          setThreatened(true);
+        }
+      })
+      .catch(function () {});
+  }, []);
+
   function handleSimulate() {
     if (!threatText.trim() || loading) return;
     setLoading(true);

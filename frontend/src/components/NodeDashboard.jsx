@@ -39,22 +39,36 @@ function NodeDashboard() {
     return function () { ctx.revert(); };
   }, []);
 
-  function handleOptimize() {
+  async function handleOptimize() {
     if (optimizing) return;
-    setOptimizing(true); setDispatchLog([]);
-    const steps = [
-      'Analyzing current inventory levels…',
-      'Cross-referencing incoming shipments…',
-      'Prioritizing critical SKUs (Control Modules)…',
-      'Assigning dock bays to TRK-007, TRK-012…',
-      '✓ Dispatch schedule optimized.',
-    ];
-    steps.forEach(function (step, i) {
-      setTimeout(function () {
-        setDispatchLog(function (prev) { return [...prev, step]; });
-        if (i === steps.length - 1) setOptimizing(false);
-      }, (i + 1) * 650);
-    });
+    setOptimizing(true); 
+    setDispatchLog(['Connecting to AI Optimizer...']);
+    
+    try {
+      const res = await fetch('/api/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inventory: INVENTORY, shipments: SHIPMENTS })
+      });
+      const data = await res.json();
+      
+      if (data.steps && data.steps.length > 0) {
+        setDispatchLog([]); // Clear "Connecting" message
+        // Stream the real steps one by one
+        data.steps.forEach(function (step, i) {
+          setTimeout(function () {
+            setDispatchLog(function (prev) { return [...prev, step]; });
+            if (i === data.steps.length - 1) setOptimizing(false);
+          }, (i + 1) * 800);
+        });
+      } else {
+        setDispatchLog(['Error: No optimization steps returned.']);
+        setOptimizing(false);
+      }
+    } catch (err) {
+      setDispatchLog(['Error connecting to AI Optimizer.']);
+      setOptimizing(false);
+    }
   }
 
   const critical = INVENTORY.filter(function (i) { return i.status === 'critical'; }).length;

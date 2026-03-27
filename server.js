@@ -13,7 +13,7 @@ var fs = require("fs");
 var path = require("path");
 
 // Use Febin's improved AI agent module
-var { parseThreatIntelligence } = require("./ai_agent");
+var { parseThreatIntelligence, generateDispatchOptimization } = require("./ai_agent");
 
 var DATA_FILE = path.join(__dirname, "data.json");
 var PORT = process.env.PORT || 3001;
@@ -175,6 +175,23 @@ function startServer() {
       aiResult: aiResult,
       routeResult: routeResult
     });
+  });
+
+  // POST optimize — Node AI Optimizer endpoint
+  app.post("/api/optimize", async function (req, res) {
+    var body = req.body;
+    if (!body || !body.inventory || !body.shipments) {
+      return res.status(400).json({ error: "Body must include inventory and shipments arrays." });
+    }
+
+    try {
+      console.log("[POST /api/optimize] Generating dispatch AI steps...");
+      var steps = await generateDispatchOptimization(body.inventory, body.shipments);
+      res.json({ steps: steps });
+    } catch (err) {
+      console.error("[Optimize API Error]", err);
+      res.status(500).json({ error: "Failed to generate optimization." });
+    }
   });
 
   // Socket.io connection log

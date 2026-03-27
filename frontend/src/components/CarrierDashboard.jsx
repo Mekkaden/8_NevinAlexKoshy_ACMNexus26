@@ -78,7 +78,7 @@ function CarrierDashboard() {
   }, []);
 
   useEffect(function () {
-    const socket = io('http://localhost:4000', { transports: ['websocket', 'polling'] });
+    const socket = io('http://localhost:3001', { transports: ['websocket', 'polling'] });
     socket.on('connect',      function () { setSocketStatus('connected');    addEvent('Connected to dispatch'); });
     socket.on('disconnect',   function () { setSocketStatus('disconnected'); });
     socket.on('connect_error',function () { setSocketStatus('error'); });

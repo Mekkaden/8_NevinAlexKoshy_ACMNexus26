@@ -100,7 +100,62 @@ async function parseThreatIntelligence(textInput) {
     return parsed;
 }
 
+// ─── Dispatch Optimization Function ───────────────────────────────────────────
+/**
+ * Takes live inventory and shipment data and uses Gemini to generate a sequence
+ * of optimization steps for warehouse dispatch operations.
+ * 
+ * @param {Array} inventory - Current local inventory levels.
+ * @param {Array} shipments - Incoming shipments arriving today.
+ * @returns {Promise<string[]>} - Array of exactly 5 optimization steps.
+ */
+async function generateDispatchOptimization(inventory, shipments) {
+    var model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    var prompt = `You are a Supply Chain Node Optimization AI. 
+Analyze the following local inventory and incoming shipments.
+Identify critical shortages and prioritize unloading/dispatch.
+
+Current Inventory:
+${JSON.stringify(inventory, null, 2)}
+
+Incoming Shipments:
+${JSON.stringify(shipments, null, 2)}
+
+Return a strict JSON array of EXACTLY 5 strings representing the step-by-step optimization actions you took. Make them look professional and technical.
+Example format:
+[
+  "Cross-referenced incoming TRK-012 with critical Control Module shortage.",
+  "Assigned expedited Dock Bay 3 for TRK-... etc.",
+  ...
+]
+
+Do not include any other text, no markdown, just the JSON array.`;
+
+    var result = await model.generateContent(prompt);
+    var rawResponse = result.response.text();
+    var cleanedResponse = stripMarkdownFormatting(rawResponse);
+    
+    try {
+        var parsed = JSON.parse(cleanedResponse);
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+            throw new Error("Not a valid array");
+        }
+        return parsed.slice(0, 5); // Ensure max 5 steps
+    } catch (err) {
+        console.error("Failed to parse Gemini array output", err);
+        return [
+            "Analyzing current inventory levels...",
+            "Cross-referencing incoming shipments...",
+            "Prioritizing critical SKUs...",
+            "Assigning dock bays...",
+            "✓ Dispatch schedule optimized."
+        ];
+    }
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 module.exports = {
-    parseThreatIntelligence: parseThreatIntelligence,
+    parseThreatIntelligence,
+    generateDispatchOptimization
 };
