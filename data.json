@@ -40,8 +40,8 @@
   "threats": [
     {
       "city": "Kochi",
-      "timestamp": "2026-03-27T18:19:32.885Z",
-      "action": "Rerouted via Coimbatore"
+      "timestamp": "2026-03-27T19:47:13.759Z",
+      "action": "Dynamically rerouted via Coimbatore"
     }
   ],
   "nodes": [
@@ -129,11 +129,41 @@
     }
   ],
   "inventory": [
-    { "sku": "SKU-4421", "name": "Industrial Bearings",  "qty": 340, "unit": "pcs",   "status": "nominal" },
-    { "sku": "SKU-8812", "name": "Hydraulic Fluid 5L",   "qty": 88,  "unit": "cans",  "status": "low" },
-    { "sku": "SKU-2290", "name": "Control Modules",      "qty": 12,  "unit": "units", "status": "critical" },
-    { "sku": "SKU-5503", "name": "Safety Mesh Rolls",    "qty": 210, "unit": "rolls", "status": "nominal" },
-    { "sku": "SKU-7714", "name": "Copper Cable 50m",     "qty": 54,  "unit": "reels", "status": "low" }
+    {
+      "sku": "SKU-4421",
+      "name": "Industrial Bearings",
+      "qty": 340,
+      "unit": "pcs",
+      "status": "nominal"
+    },
+    {
+      "sku": "SKU-8812",
+      "name": "Hydraulic Fluid 5L",
+      "qty": 88,
+      "unit": "cans",
+      "status": "low"
+    },
+    {
+      "sku": "SKU-2290",
+      "name": "Control Modules",
+      "qty": 12,
+      "unit": "units",
+      "status": "critical"
+    },
+    {
+      "sku": "SKU-5503",
+      "name": "Safety Mesh Rolls",
+      "qty": 210,
+      "unit": "rolls",
+      "status": "nominal"
+    },
+    {
+      "sku": "SKU-7714",
+      "name": "Copper Cable 50m",
+      "qty": 54,
+      "unit": "reels",
+      "status": "low"
+    }
   ],
   "active_shipments": [
     {
@@ -143,7 +173,7 @@
       "origin": "BLR",
       "destination": "TVM",
       "current_location": "BLR",
-      "next_node": "COK",
+      "next_node": "Coimbatore",
       "active_route": "PATH_A",
       "route_label": "BLR → Kochi → TVM",
       "status": "in_transit",
@@ -151,7 +181,7 @@
       "departed_at": "2026-03-27T22:00:00+05:30",
       "estimated_arrival": "2026-03-28T08:30:00+05:30",
       "threat_alert": null,
-      "rerouted": false
+      "rerouted": true
     }
   ]
 }

@@ -174,6 +174,18 @@ function startServer() {
     res.json(data.currentRoute);
   });
 
+  // GET full state snapshot — used by all dashboards on mount
+  app.get("/api/state", function (req, res) {
+    var data = readData();
+    res.json(data);
+  });
+
+  // GET active shipments (alias)
+  app.get("/api/shipments", function (req, res) {
+    var data = readData();
+    res.json(data.active_shipments || []);
+  });
+
   // GET node operations data (inventory + shipments)
   app.get("/api/node", function (req, res) {
     var data = readData();
@@ -188,8 +200,19 @@ function startServer() {
     var data = readData();
     data.currentRoute = { path: ["BLR", "Kochi", "TVM"], status: "active" };
     data.threats = [];
+    // Reset shipment reroute flags
+    if (data.active_shipments) {
+      data.active_shipments.forEach(function (shp) {
+        shp.rerouted = false;
+        shp.next_node = "COK";
+        shp.threat_alert = null;
+        shp.active_route = "PATH_A";
+        shp.route_label = "BLR \u2192 Kochi \u2192 TVM";
+      });
+    }
     writeData(data);
     io.emit("route_reset", { path: ["BLR", "Kochi", "TVM"], status: "active" });
+    io.emit("state_updated", readData());
     res.json({ message: "Route reset to default." });
   });
 
@@ -229,6 +252,9 @@ function startServer() {
         status: "rerouted",
         timestamp: new Date().toISOString()
       });
+
+      // Emit full state so all dashboards can hydrate at once
+      io.emit("state_updated", readData());
     }
 
     return res.json({
