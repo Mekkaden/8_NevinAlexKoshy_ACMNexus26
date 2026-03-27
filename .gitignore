@@ -1,5 +1,10 @@
 node_modules/
+<<<<<<< HEAD
 client/node_modules/
 .env
 dist/
 client/dist/
+=======
+.env
+*.log
+>>>>>>> 20ed5dcdc18eb359243cac3fc1096e109402521b
