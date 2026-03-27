@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import { io } from 'socket.io-client';
 import { Package, AlertTriangle, TruckIcon, Cpu } from 'lucide-react';
 import Layout, { Card, StatCard, SectionLabel } from './Layout';
+import { normalizeNode } from '../nodeUtils';
 
 const STATUS_STYLES = {
   nominal:  { color: '#10B981', bg: '#F0FDF4' },
@@ -29,7 +30,8 @@ function NodeDashboard() {
       cargo: shp.cargo,
       from: shp.origin + ' Hub',
       rerouted: shp.rerouted,
-      next_node: shp.next_node,
+      // Normalize next_node: "Coimbatore" → "CBE", "Kochi" → "COK"
+      next_node: normalizeNode(shp.next_node),
       status: shp.status,
     }));
   }

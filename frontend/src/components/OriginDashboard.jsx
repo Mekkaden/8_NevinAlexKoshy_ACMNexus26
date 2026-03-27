@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import gsap from 'gsap';
 import { AlertTriangle, Truck, Shield, Radio, RotateCcw } from 'lucide-react';
 import Layout, { Card, StatCard, SectionLabel } from './Layout';
+import { normalizeNode, normalizePath } from '../nodeUtils';
 
 /* ─── Node positions (normalised 0-1) ────────────────────────────── */
 const NODE_POS = {
@@ -114,10 +115,18 @@ function OriginDashboard() {
   // Helper to hydrate state from full backend snapshot
   function hydrateFromState(data) {
     if (data.currentRoute && data.currentRoute.path) {
-      setActivePath(data.currentRoute.path);
+      // Normalize path to short codes (BLR, COK, CBE, TVM)
+      const normalizedPath = normalizePath(data.currentRoute.path);
+      setActivePath(normalizedPath);
       const isRerouted = data.currentRoute.status === 'rerouted';
       setThreatened(isRerouted);
-      if (!isRerouted) setBlockedNode(null);
+      if (!isRerouted) {
+        setBlockedNode(null);
+      } else if (data.threats && data.threats.length > 0) {
+        // Derive blocked node from threats history and normalize to code
+        const lastThreat = data.threats[data.threats.length - 1];
+        setBlockedNode(normalizeNode(lastThreat.city));
+      }
     }
     if (data.active_shipments) setCarriersActive(data.active_shipments.filter(s => s.status === 'in_transit').length);
     if (data.nodes) {
@@ -157,8 +166,10 @@ function OriginDashboard() {
     });
 
     socket.on('route_updated', function (d) {
-      if (d.blockedNode) setBlockedNode(d.blockedNode);
-      addLog(`⚠ REROUTED — ${d.blockedNode} blocked · New path: ${(d.newPath || []).join(' → ')}`);
+      // Normalize blockedNode from full name to code (e.g. "Kochi" → "COK")
+      if (d.blockedNode) setBlockedNode(normalizeNode(d.blockedNode));
+      const newPathStr = normalizePath(d.newPath || []).join(' → ');
+      addLog(`⚠ REROUTED — ${d.blockedNode} blocked · New path: ${newPathStr}`);
       setThreatened(true);
     });
 

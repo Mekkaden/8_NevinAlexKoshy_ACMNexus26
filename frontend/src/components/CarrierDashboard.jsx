@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import { io } from 'socket.io-client';
 import { MapPin, Clock, Weight, Navigation, RotateCcw } from 'lucide-react';
 import Layout, { Card, StatCard, SectionLabel } from './Layout';
+import { normalizePath, NODE_LABELS } from '../nodeUtils';
 
 /* ─── Edge Distance & Time Map ─────────────────────────────────────
    Mirrors data.json edges. Used to derive real ETA + distance.      */
@@ -14,14 +15,8 @@ const EDGE_DATA = {
   'CBE-TVM': { distance_km: 230, estimated_time_hrs: 4.5 },
 };
 
-const NODE_LABELS = {
-  BLR:  'Bangalore Hub',
-  COK:  'Kochi Port',
-  Kochi:'Kochi Port',
-  CBE:  'Coimbatore Node',
-  Coimbatore: 'Coimbatore Node',
-  TVM:  'Trivandrum Hub',
-};
+/* ─── Node Labels ─────────────────────────────────────────────────── */
+// Imported from nodeUtils — removed local duplicate
 
 /* Compute total distance (km) and ETA (hrs) for a given path array */
 function calcRouteStats(path) {
@@ -123,7 +118,8 @@ function CarrierDashboard() {
   // Hydrate route + shipment data from full state snapshot
   function hydrateFromState(data) {
     if (data.currentRoute && data.currentRoute.path) {
-      const path = data.currentRoute.path;
+      // Normalize full names to codes before calculating stats
+      const path = normalizePath(data.currentRoute.path);
       setRouteNodes(path);
       setCurrentRoute(path.join(' → '));
 
@@ -156,9 +152,10 @@ function CarrierDashboard() {
 
     socket.on('route_init', function (routeObj) {
       if (routeObj && routeObj.path) {
-        setRouteNodes(routeObj.path);
-        setCurrentRoute(routeObj.path.join(' → '));
-        const { totalKm, totalHrs } = calcRouteStats(routeObj.path);
+        const path = normalizePath(routeObj.path);
+        setRouteNodes(path);
+        setCurrentRoute(path.join(' → '));
+        const { totalKm, totalHrs } = calcRouteStats(path);
         setDistanceKm(totalKm > 0 ? String(totalKm) : '—');
         setEtaHrs(totalHrs > 0 ? totalHrs.toFixed(1) + 'h' : '—');
       }

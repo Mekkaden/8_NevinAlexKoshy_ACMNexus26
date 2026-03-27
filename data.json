@@ -32,18 +32,12 @@
   "currentRoute": {
     "path": [
       "BLR",
-      "Coimbatore",
+      "Kochi",
       "TVM"
     ],
-    "status": "rerouted"
+    "status": "active"
   },
-  "threats": [
-    {
-      "city": "Kochi",
-      "timestamp": "2026-03-27T19:47:13.759Z",
-      "action": "Dynamically rerouted via Coimbatore"
-    }
-  ],
+  "threats": [],
   "nodes": [
     {
       "id": "BLR",
@@ -173,7 +167,7 @@
       "origin": "BLR",
       "destination": "TVM",
       "current_location": "BLR",
-      "next_node": "Coimbatore",
+      "next_node": "COK",
       "active_route": "PATH_A",
       "route_label": "BLR → Kochi → TVM",
       "status": "in_transit",
@@ -181,7 +175,7 @@
       "departed_at": "2026-03-27T22:00:00+05:30",
       "estimated_arrival": "2026-03-28T08:30:00+05:30",
       "threat_alert": null,
-      "rerouted": true
+      "rerouted": false
     }
   ]
 }
