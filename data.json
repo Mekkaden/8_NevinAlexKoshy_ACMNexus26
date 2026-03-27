@@ -1,0 +1,16 @@
+{
+  "graph": {
+    "nodes": ["BLR", "Kochi", "Coimbatore", "TVM"],
+    "edges": [
+      { "from": "BLR", "to": "Kochi", "weight": 560 },
+      { "from": "BLR", "to": "Coimbatore", "weight": 360 },
+      { "from": "Kochi", "to": "TVM", "weight": 220 },
+      { "from": "Coimbatore", "to": "TVM", "weight": 310 }
+    ]
+  },
+  "currentRoute": {
+    "path": ["BLR", "Kochi", "TVM"],
+    "status": "active"
+  },
+  "threats": []
+}
