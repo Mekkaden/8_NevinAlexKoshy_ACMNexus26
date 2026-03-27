@@ -130,7 +130,19 @@ function NodeDashboard() {
   // Shipments for the selected node — shown in "Incoming Today"
   const visibleShipments = allShipments.filter(s => s.next_node === selectedNode);
 
-  const nodeName = selectedNode === 'COK' ? 'KOCHI-01' : 'COIMBATORE-02';
+  const NODE_NAMES = {
+    COK: 'KOCHI-01',
+    CBE: 'COIMBATORE-02',
+    MAA: 'CHENNAI-03',
+    MDU: 'MADURAI-04',
+    IXE: 'MANGALORE-05',
+    MYS: 'MYSORE-06',
+    SLM: 'SALEM-07',
+    HBL: 'HUBLI-08',
+    HYD: 'HYDERABAD-09',
+    CCJ: 'CALICUT-10',
+  };
+  const nodeName = NODE_NAMES[selectedNode] || selectedNode;
 
   // Optimizer can run as long as we have inventory — not gated by filtered shipments
   const canOptimize = !optimizing && inventory.length > 0;
@@ -146,6 +158,14 @@ function NodeDashboard() {
             style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#FFFFFF', fontSize: '12px', fontWeight: 600, fontFamily: 'Space Grotesk, sans-serif', outline: 'none', cursor: 'pointer' }}>
             <option value="COK">🟢 KOCHI Transit Node</option>
             <option value="CBE">🟢 COIMBATORE Dist. Node</option>
+            <option value="MAA">🟢 CHENNAI Port Hub</option>
+            <option value="MDU">🟢 MADURAI Transit Node</option>
+            <option value="IXE">🟢 MANGALORE Coastal Depot</option>
+            <option value="MYS">🟢 MYSORE Dist. Centre</option>
+            <option value="SLM">🟢 SALEM Relay Node</option>
+            <option value="HBL">🟢 HUBLI Freight Station</option>
+            <option value="HYD">🟢 HYDERABAD Logistics Park</option>
+            <option value="CCJ">🟢 CALICUT Gateway Node</option>
           </select>
         </div>
 

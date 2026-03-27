@@ -53,13 +53,17 @@ async function analyzeThreatWithGemini(text) {
 // ─────────────────────────────────────────────
 function fallbackAnalyze(text) {
   var lower = text.toLowerCase();
-  if (lower.indexOf("kochi") !== -1) {
-    return { blocked_node: "Kochi", reason: "Keyword match: Kochi" };
-  }
-  if (lower.indexOf("coimbatore") !== -1) {
-    return { blocked_node: "Coimbatore", reason: "Keyword match: Coimbatore" };
-  }
-  return { blocked_node: null, reason: "No known node affected" };
+  if (lower.indexOf('kochi') !== -1)      return { blocked_node: 'Kochi',      reason: 'Keyword match: Kochi' };
+  if (lower.indexOf('coimbatore') !== -1) return { blocked_node: 'Coimbatore', reason: 'Keyword match: Coimbatore' };
+  if (lower.indexOf('chennai') !== -1)    return { blocked_node: 'Chennai',    reason: 'Keyword match: Chennai' };
+  if (lower.indexOf('madurai') !== -1)    return { blocked_node: 'Madurai',    reason: 'Keyword match: Madurai' };
+  if (lower.indexOf('mangalore') !== -1)  return { blocked_node: 'Mangalore',  reason: 'Keyword match: Mangalore' };
+  if (lower.indexOf('mysore') !== -1)     return { blocked_node: 'Mysore',     reason: 'Keyword match: Mysore' };
+  if (lower.indexOf('salem') !== -1)      return { blocked_node: 'Salem',      reason: 'Keyword match: Salem' };
+  if (lower.indexOf('hubli') !== -1)      return { blocked_node: 'Hubli',      reason: 'Keyword match: Hubli' };
+  if (lower.indexOf('hyderabad') !== -1)  return { blocked_node: 'Hyderabad',  reason: 'Keyword match: Hyderabad' };
+  if (lower.indexOf('calicut') !== -1)    return { blocked_node: 'Calicut',    reason: 'Keyword match: Calicut' };
+  return { blocked_node: null, reason: 'No known node affected' };
 }
 
 // ─────────────────────────────────────────────

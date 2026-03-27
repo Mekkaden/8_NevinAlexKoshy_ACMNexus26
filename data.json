@@ -4,7 +4,15 @@
       "BLR",
       "Kochi",
       "Coimbatore",
-      "TVM"
+      "TVM",
+      "Chennai",
+      "Madurai",
+      "Mangalore",
+      "Mysore",
+      "Salem",
+      "Hubli",
+      "Hyderabad",
+      "Calicut"
     ],
     "edges": [
       {
@@ -26,24 +34,98 @@
         "from": "Coimbatore",
         "to": "TVM",
         "weight": 310
+      },
+      {
+        "from": "BLR",
+        "to": "Chennai",
+        "weight": 346
+      },
+      {
+        "from": "Chennai",
+        "to": "Madurai",
+        "weight": 460
+      },
+      {
+        "from": "Madurai",
+        "to": "TVM",
+        "weight": 170
+      },
+      {
+        "from": "BLR",
+        "to": "Mangalore",
+        "weight": 352
+      },
+      {
+        "from": "Mangalore",
+        "to": "Kochi",
+        "weight": 240
+      },
+      {
+        "from": "BLR",
+        "to": "Mysore",
+        "weight": 145
+      },
+      {
+        "from": "Mysore",
+        "to": "Coimbatore",
+        "weight": 190
+      },
+      {
+        "from": "Coimbatore",
+        "to": "Salem",
+        "weight": 150
+      },
+      {
+        "from": "Salem",
+        "to": "Chennai",
+        "weight": 340
+      },
+      {
+        "from": "BLR",
+        "to": "Hubli",
+        "weight": 420
+      },
+      {
+        "from": "Hubli",
+        "to": "Mangalore",
+        "weight": 215
+      },
+      {
+        "from": "BLR",
+        "to": "Hyderabad",
+        "weight": 570
+      },
+      {
+        "from": "Hyderabad",
+        "to": "Chennai",
+        "weight": 630
+      },
+      {
+        "from": "Kochi",
+        "to": "Calicut",
+        "weight": 188
+      },
+      {
+        "from": "Calicut",
+        "to": "Mangalore",
+        "weight": 196
+      },
+      {
+        "from": "Madurai",
+        "to": "Coimbatore",
+        "weight": 210
       }
     ]
   },
   "currentRoute": {
     "path": [
       "BLR",
-      "Coimbatore",
+      "Kochi",
       "TVM"
     ],
-    "status": "rerouted"
+    "status": "active"
   },
-  "threats": [
-    {
-      "city": "Kochi",
-      "timestamp": "2026-03-27T19:55:56.454Z",
-      "action": "Dynamically rerouted via Coimbatore"
-    }
-  ],
+  "threats": [],
   "nodes": [
     {
       "id": "BLR",
@@ -88,6 +170,94 @@
         "lng": 76.9366
       },
       "status": "active"
+    },
+    {
+      "id": "MAA",
+      "name": "Chennai",
+      "full_name": "Chennai Port Hub",
+      "role": "Node",
+      "coordinates": {
+        "lat": 13.0827,
+        "lng": 80.2707
+      },
+      "status": "active"
+    },
+    {
+      "id": "MDU",
+      "name": "Madurai",
+      "full_name": "Madurai Transit Node",
+      "role": "Node",
+      "coordinates": {
+        "lat": 9.9252,
+        "lng": 78.1198
+      },
+      "status": "active"
+    },
+    {
+      "id": "IXE",
+      "name": "Mangalore",
+      "full_name": "Mangalore Coastal Depot",
+      "role": "Node",
+      "coordinates": {
+        "lat": 12.9141,
+        "lng": 74.856
+      },
+      "status": "active"
+    },
+    {
+      "id": "MYS",
+      "name": "Mysore",
+      "full_name": "Mysore Distribution Centre",
+      "role": "Node",
+      "coordinates": {
+        "lat": 12.2958,
+        "lng": 76.6394
+      },
+      "status": "active"
+    },
+    {
+      "id": "SLM",
+      "name": "Salem",
+      "full_name": "Salem Relay Node",
+      "role": "Node",
+      "coordinates": {
+        "lat": 11.6643,
+        "lng": 78.146
+      },
+      "status": "active"
+    },
+    {
+      "id": "HBL",
+      "name": "Hubli",
+      "full_name": "Hubli Freight Station",
+      "role": "Node",
+      "coordinates": {
+        "lat": 15.3647,
+        "lng": 75.124
+      },
+      "status": "active"
+    },
+    {
+      "id": "HYD",
+      "name": "Hyderabad",
+      "full_name": "Hyderabad Logistics Park",
+      "role": "Node",
+      "coordinates": {
+        "lat": 17.385,
+        "lng": 78.4867
+      },
+      "status": "active"
+    },
+    {
+      "id": "CCJ",
+      "name": "Calicut",
+      "full_name": "Calicut Gateway Node",
+      "role": "Node",
+      "coordinates": {
+        "lat": 11.2588,
+        "lng": 75.7804
+      },
+      "status": "active"
     }
   ],
   "edges": [
@@ -126,6 +296,150 @@
       "estimated_time_hrs": 4.5,
       "path": "B",
       "label": "Coimbatore → Trivandrum"
+    },
+    {
+      "id": "E5",
+      "from": "BLR",
+      "to": "MAA",
+      "distance_km": 346,
+      "estimated_time_hrs": 5.5,
+      "path": "C",
+      "label": "Bangalore → Chennai"
+    },
+    {
+      "id": "E6",
+      "from": "MAA",
+      "to": "MDU",
+      "distance_km": 460,
+      "estimated_time_hrs": 7,
+      "path": "C",
+      "label": "Chennai → Madurai"
+    },
+    {
+      "id": "E7",
+      "from": "MDU",
+      "to": "TVM",
+      "distance_km": 170,
+      "estimated_time_hrs": 3.5,
+      "path": "C",
+      "label": "Madurai → Trivandrum"
+    },
+    {
+      "id": "E8",
+      "from": "BLR",
+      "to": "IXE",
+      "distance_km": 352,
+      "estimated_time_hrs": 6,
+      "path": "D",
+      "label": "Bangalore → Mangalore"
+    },
+    {
+      "id": "E9",
+      "from": "IXE",
+      "to": "COK",
+      "distance_km": 240,
+      "estimated_time_hrs": 4.5,
+      "path": "D",
+      "label": "Mangalore → Kochi"
+    },
+    {
+      "id": "E10",
+      "from": "BLR",
+      "to": "MYS",
+      "distance_km": 145,
+      "estimated_time_hrs": 2.5,
+      "path": "E",
+      "label": "Bangalore → Mysore"
+    },
+    {
+      "id": "E11",
+      "from": "MYS",
+      "to": "CBE",
+      "distance_km": 190,
+      "estimated_time_hrs": 3.5,
+      "path": "E",
+      "label": "Mysore → Coimbatore"
+    },
+    {
+      "id": "E12",
+      "from": "CBE",
+      "to": "SLM",
+      "distance_km": 150,
+      "estimated_time_hrs": 2.5,
+      "path": "F",
+      "label": "Coimbatore → Salem"
+    },
+    {
+      "id": "E13",
+      "from": "SLM",
+      "to": "MAA",
+      "distance_km": 340,
+      "estimated_time_hrs": 5.5,
+      "path": "F",
+      "label": "Salem → Chennai"
+    },
+    {
+      "id": "E14",
+      "from": "BLR",
+      "to": "HBL",
+      "distance_km": 420,
+      "estimated_time_hrs": 7,
+      "path": "G",
+      "label": "Bangalore → Hubli"
+    },
+    {
+      "id": "E15",
+      "from": "HBL",
+      "to": "IXE",
+      "distance_km": 215,
+      "estimated_time_hrs": 4,
+      "path": "G",
+      "label": "Hubli → Mangalore"
+    },
+    {
+      "id": "E16",
+      "from": "BLR",
+      "to": "HYD",
+      "distance_km": 570,
+      "estimated_time_hrs": 9,
+      "path": "H",
+      "label": "Bangalore → Hyderabad"
+    },
+    {
+      "id": "E17",
+      "from": "HYD",
+      "to": "MAA",
+      "distance_km": 630,
+      "estimated_time_hrs": 10,
+      "path": "H",
+      "label": "Hyderabad → Chennai"
+    },
+    {
+      "id": "E18",
+      "from": "COK",
+      "to": "CCJ",
+      "distance_km": 188,
+      "estimated_time_hrs": 3.5,
+      "path": "I",
+      "label": "Kochi → Calicut"
+    },
+    {
+      "id": "E19",
+      "from": "CCJ",
+      "to": "IXE",
+      "distance_km": 196,
+      "estimated_time_hrs": 3.5,
+      "path": "I",
+      "label": "Calicut → Mangalore"
+    },
+    {
+      "id": "E20",
+      "from": "MDU",
+      "to": "CBE",
+      "distance_km": 210,
+      "estimated_time_hrs": 4,
+      "path": "J",
+      "label": "Madurai → Coimbatore"
     }
   ],
   "inventory": [
@@ -163,6 +477,41 @@
       "qty": 54,
       "unit": "reels",
       "status": "low"
+    },
+    {
+      "sku": "SKU-3301",
+      "name": "Pressure Valves",
+      "qty": 180,
+      "unit": "pcs",
+      "status": "nominal"
+    },
+    {
+      "sku": "SKU-6620",
+      "name": "Circuit Breakers",
+      "qty": 9,
+      "unit": "units",
+      "status": "critical"
+    },
+    {
+      "sku": "SKU-1144",
+      "name": "Motor Oil 10W-40",
+      "qty": 155,
+      "unit": "ltrs",
+      "status": "nominal"
+    },
+    {
+      "sku": "SKU-9910",
+      "name": "Steel Fasteners M12",
+      "qty": 62,
+      "unit": "kgs",
+      "status": "low"
+    },
+    {
+      "sku": "SKU-5570",
+      "name": "Relay Switches",
+      "qty": 47,
+      "unit": "units",
+      "status": "low"
     }
   ],
   "active_shipments": [
@@ -173,15 +522,83 @@
       "origin": "BLR",
       "destination": "TVM",
       "current_location": "BLR",
-      "next_node": "Coimbatore",
+      "next_node": "COK",
       "active_route": "PATH_A",
       "route_label": "BLR → Kochi → TVM",
       "status": "in_transit",
       "cargo": "Electronics - High Priority",
-      "departed_at": "2026-03-27T22:00:00+05:30",
-      "estimated_arrival": "2026-03-28T08:30:00+05:30",
+      "departed_at": "2026-03-28T00:00:00+05:30",
+      "estimated_arrival": "2026-03-28T11:00:00+05:30",
       "threat_alert": null,
-      "rerouted": true
+      "rerouted": false
+    },
+    {
+      "id": "SHIP-002",
+      "truck_id": "TRK-TN07CD5678",
+      "driver_name": "Suresh Babu",
+      "origin": "BLR",
+      "destination": "TVM",
+      "current_location": "MAA",
+      "next_node": "COK",
+      "active_route": "PATH_A",
+      "route_label": "BLR → Kochi → TVM",
+      "status": "in_transit",
+      "cargo": "Medical Supplies",
+      "departed_at": "2026-03-27T22:00:00+05:30",
+      "estimated_arrival": "2026-03-28T14:00:00+05:30",
+      "threat_alert": null,
+      "rerouted": false
+    },
+    {
+      "id": "SHIP-003",
+      "truck_id": "TRK-KL09EF9012",
+      "driver_name": "Anoop Menon",
+      "origin": "BLR",
+      "destination": "COK",
+      "current_location": "IXE",
+      "next_node": "COK",
+      "active_route": "PATH_A",
+      "route_label": "BLR → Kochi → TVM",
+      "status": "in_transit",
+      "cargo": "Construction Materials",
+      "departed_at": "2026-03-28T01:00:00+05:30",
+      "estimated_arrival": "2026-03-28T13:00:00+05:30",
+      "threat_alert": null,
+      "rerouted": false
+    },
+    {
+      "id": "SHIP-004",
+      "truck_id": "TRK-KA02GH3456",
+      "driver_name": "Vikram Nair",
+      "origin": "HYD",
+      "destination": "TVM",
+      "current_location": "HYD",
+      "next_node": "COK",
+      "active_route": "PATH_A",
+      "route_label": "BLR → Kochi → TVM",
+      "status": "in_transit",
+      "cargo": "Automotive Parts",
+      "departed_at": "2026-03-27T20:00:00+05:30",
+      "estimated_arrival": "2026-03-28T16:00:00+05:30",
+      "threat_alert": null,
+      "rerouted": false
+    },
+    {
+      "id": "SHIP-005",
+      "truck_id": "TRK-KA05IJ7890",
+      "driver_name": "Priya Sharma",
+      "origin": "BLR",
+      "destination": "CBE",
+      "current_location": "MYS",
+      "next_node": "COK",
+      "active_route": "PATH_A",
+      "route_label": "BLR → Kochi → TVM",
+      "status": "in_transit",
+      "cargo": "Textile Machinery",
+      "departed_at": "2026-03-28T02:00:00+05:30",
+      "estimated_arrival": "2026-03-28T09:00:00+05:30",
+      "threat_alert": null,
+      "rerouted": false
     }
   ]
 }

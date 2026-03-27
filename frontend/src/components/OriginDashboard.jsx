@@ -6,13 +6,36 @@ import { AlertTriangle, Truck, Shield, Radio, RotateCcw } from 'lucide-react';
 import Layout, { Card, StatCard, SectionLabel } from './Layout';
 import { normalizeNode, normalizePath } from '../nodeUtils';
 
+/* ─── Full city names for display ──────────────────────────────── */
+const NODE_NAMES = {
+  BLR: 'Bangalore',
+  COK: 'Kochi',
+  CBE: 'Coimbatore',
+  TVM: 'Trivandrum',
+  MAA: 'Chennai',
+  MDU: 'Madurai',
+  IXE: 'Mangalore',
+  MYS: 'Mysore',
+  SLM: 'Salem',
+  HBL: 'Hubli',
+  HYD: 'Hyderabad',
+  CCJ: 'Calicut',
+};
+
 /* ─── Node positions (normalised 0-1) ────────────────────────────── */
 const NODE_POS = {
-  BLR:   { x: 0.20, y: 0.12 },
-  CBE:   { x: 0.36, y: 0.54 },
-  COK:   { x: 0.70, y: 0.44 },
-  KOCHI: { x: 0.70, y: 0.44 }, // alias
-  TVM:   { x: 0.54, y: 0.84 },
+  BLR:   { x: 0.42, y: 0.18 },  // Bangalore – centre-north
+  HYD:   { x: 0.80, y: 0.08 },  // Hyderabad – far north-east
+  HBL:   { x: 0.14, y: 0.22 },  // Hubli – north-west
+  IXE:   { x: 0.08, y: 0.38 },  // Mangalore – west coast
+  MYS:   { x: 0.30, y: 0.34 },  // Mysore – mid-west
+  CBE:   { x: 0.44, y: 0.52 },  // Coimbatore – centre
+  COK:   { x: 0.16, y: 0.52 },  // Kochi – west coast
+  CCJ:   { x: 0.12, y: 0.42 },  // Calicut – between Kochi & Mangalore
+  MAA:   { x: 0.82, y: 0.34 },  // Chennai – east coast
+  SLM:   { x: 0.62, y: 0.52 },  // Salem – mid-east
+  MDU:   { x: 0.60, y: 0.70 },  // Madurai – south-east
+  TVM:   { x: 0.32, y: 0.88 },  // Trivandrum – south-west (destination)
 };
 
 /* All possible edges in the graph */
@@ -21,6 +44,22 @@ const ALL_EDGES = [
   ['COK', 'TVM'],
   ['BLR', 'CBE'],
   ['CBE', 'TVM'],
+  ['BLR', 'MAA'],
+  ['MAA', 'MDU'],
+  ['MDU', 'TVM'],
+  ['BLR', 'IXE'],
+  ['IXE', 'COK'],
+  ['BLR', 'MYS'],
+  ['MYS', 'CBE'],
+  ['CBE', 'SLM'],
+  ['SLM', 'MAA'],
+  ['BLR', 'HBL'],
+  ['HBL', 'IXE'],
+  ['BLR', 'HYD'],
+  ['HYD', 'MAA'],
+  ['COK', 'CCJ'],
+  ['CCJ', 'IXE'],
+  ['MDU', 'CBE'],
 ];
 
 /* Build a set of "active" edge keys from the current path */
@@ -39,9 +78,10 @@ function buildActiveEdgeSet(path) {
 function RouteMap({ activePath, blockedNode }) {
   const activeEdges = buildActiveEdgeSet(activePath || []);
   const rerouted = activePath && activePath.some(n => n === 'CBE' || n === 'Coimbatore');
+  const pathLabel = (activePath || []).map(n => NODE_NAMES[n] || n).join(' → ');
   const label = rerouted
     ? `⚠ ROUTE COMPROMISED · VIA COIMBATORE`
-    : `● ${(activePath || []).join(' → ')}`;
+    : `● ${pathLabel}`;
 
   return (
     <div style={{ position: 'relative', height: '220px', background: '#F9F8F4', borderRadius: '8px', border: '1px solid #E5E4DE', overflow: 'hidden' }}>
@@ -74,7 +114,7 @@ function RouteMap({ activePath, blockedNode }) {
           <div key={id} style={{ position: 'absolute', left: pos.x * 100 + '%', top: pos.y * 100 + '%', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: dotColor, boxShadow: `0 0 0 4px ${dotColor}26`, transition: 'all 0.8s' }} />
             <span className="mono" style={{ fontSize: '9px', letterSpacing: '0.08em', color: isBlocked ? '#EF4444' : '#9CA3AF', transition: 'color 0.8s', fontWeight: 600 }}>
-              {id}{isBlocked ? ' ✕' : ''}
+              {NODE_NAMES[id] || id}{isBlocked ? ' ✕' : ''}
             </span>
           </div>
         );
