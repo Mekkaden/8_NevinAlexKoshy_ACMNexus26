@@ -1,198 +1,172 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
 
-const DELIVERY_STOPS = [
-  { id: 1, address: '12, MG Road, Ernakulam', recipient: 'Kerala Industrial Co.', pkg: 'Control Modules ×10', time: '10:00 – 10:30', status: 'delivered' },
-  { id: 2, address: '7, Marine Drive, Kochi', recipient: 'Coastal Supplies Ltd.', pkg: 'Safety Mesh ×20 rolls', time: '11:00 – 11:30', status: 'delivered' },
-  { id: 3, address: '45, Palarivattom Jn.', recipient: 'TechNode Hardware', pkg: 'Hydraulic Fluid ×12 cans', time: '12:00 – 12:30', status: 'active' },
-  { id: 4, address: '3, Edappally Toll, NH-66', recipient: 'GenTech Solutions', pkg: 'Copper Cable ×8 reels', time: '13:30 – 14:00', status: 'upcoming' },
-  { id: 5, address: '88, CSEZ Gate, Kakkanad', recipient: 'Nexus Warehouse Alpha', pkg: 'Mixed Cargo 0.8T', time: '15:00 – 15:45', status: 'upcoming' },
+const STOPS = [
+  { id: 1, recipient: 'Kerala Industrial Co.',  address: '12, MG Road, Ernakulam',       pkg: 'Control Modules ×10',    window: '10:00 – 10:30', status: 'delivered' },
+  { id: 2, recipient: 'Coastal Supplies Ltd.',   address: '7, Marine Drive, Kochi',        pkg: 'Safety Mesh ×20 rolls',  window: '11:00 – 11:30', status: 'delivered' },
+  { id: 3, recipient: 'TechNode Hardware',        address: '45, Palarivattom Junction',     pkg: 'Hydraulic Fluid ×12',    window: '12:00 – 12:30', status: 'active' },
+  { id: 4, recipient: 'GenTech Solutions',        address: '3, Edappally Toll, NH-66',      pkg: 'Copper Cable ×8 reels',  window: '13:30 – 14:00', status: 'upcoming' },
+  { id: 5, recipient: 'Nexus Warehouse Alpha',    address: '88, CSEZ Gate, Kakkanad',       pkg: 'Mixed Cargo 0.8T',       window: '15:00 – 15:45', status: 'upcoming' },
 ];
 
 function SubsidiaryDashboard() {
-  const [stops, setStops] = useState([]);
-  const [progress, setProgress] = useState(40);
+  const rootRef = useRef(null);
+  const [stops, setStops]       = useState(STOPS);
+  const [listReady, setListReady] = useState(false);
 
-  useEffect(function() {
-    const timer = setTimeout(function() { setStops(DELIVERY_STOPS); }, 300);
-    return function() { clearTimeout(timer); };
+  const delivered = stops.filter(function (s) { return s.status === 'delivered'; }).length;
+  const pct       = Math.round((delivered / stops.length) * 100);
+  const complete  = pct === 100;
+
+  useEffect(function () {
+    const ctx = gsap.context(function () {
+      gsap.from('.g-heading', { opacity: 0, y: 28, duration: 0.75, ease: 'power3.out' });
+      gsap.from('.g-big',     { opacity: 0, y: 16, duration: 0.6, delay: 0.25, ease: 'power2.out' });
+      gsap.from('.g-bar',     { scaleX: 0, transformOrigin: 'left', duration: 0.8, delay: 0.4, ease: 'power2.out' });
+      gsap.from('.g-section', { opacity: 0, y: 14, delay: 0.5, duration: 0.5 });
+    }, rootRef);
+    setTimeout(function () { setListReady(true); }, 500);
+    return function () { ctx.revert(); };
   }, []);
 
   function handleMarkDelivered(id) {
-    setStops(function(prev) {
-      const idx = prev.findIndex(function(s) { return s.id === id; });
-      const updated = prev.map(function(s, i) {
+    setStops(function (prev) {
+      const idx = prev.findIndex(function (s) { return s.id === id; });
+      return prev.map(function (s, i) {
         if (s.id === id) return Object.assign({}, s, { status: 'delivered' });
         if (i === idx + 1 && s.status !== 'delivered') return Object.assign({}, s, { status: 'active' });
         return s;
       });
-      const done = updated.filter(function(s) { return s.status === 'delivered'; }).length;
-      setProgress(Math.round((done / updated.length) * 100));
-      return updated;
     });
   }
 
-  const delivered = stops.filter(function(s) { return s.status === 'delivered'; }).length;
-  const statusColor = { delivered: '#00e676', active: '#00c2ff', upcoming: '#2a3d55' };
-  const statusLabel = { delivered: 'DELIVERED', active: 'EN ROUTE', upcoming: 'PENDING' };
-  const statusText = { delivered: '#00e676', active: '#00c2ff', upcoming: '#5a7a9a' };
-
   return (
-    <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #050a14 0%, #071525 100%)' }}>
+    <div ref={rootRef} style={{ background: '#09090B', minHeight: 'calc(100vh - 49px)', padding: '48px' }}>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">📦</span>
-            <span className="text-xs font-mono text-[#00c2ff] tracking-widest uppercase">Subsidiary Branch · KOCHI-LM</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">Last-Mile Delivery</h1>
-          <p className="text-sm text-[#5a7a9a] mt-0.5">5 stops · Kochi Zone Alpha</p>
+      <div style={{ marginBottom: '40px' }}>
+        <p className="g-heading mono" style={{ fontSize: '11px', color: '#3F3F46', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '8px' }}>Subsidiary Branch · KOCHI-LM</p>
+        <h1 className="g-heading" style={{ fontSize: '40px', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, color: '#FAFAFA' }}>Last-Mile Delivery</h1>
+      </div>
+
+      {/* Big progress number */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', marginBottom: '20px' }}>
+        <div className="g-big" style={{ fontFamily: 'DM Mono, monospace', fontSize: '72px', fontWeight: 700, letterSpacing: '-0.05em', lineHeight: 1, color: complete ? '#34D399' : '#FAFAFA', transition: 'color 0.6s' }}>
+          {pct}<span style={{ fontSize: '36px', color: '#3F3F46', marginLeft: '4px' }}>%</span>
         </div>
-        <div className="text-right">
-          <div className="text-xs font-mono text-[#5a7a9a] mb-1">PROGRESS</div>
-          <div className="text-2xl font-black font-mono" style={{ color: '#00c2ff' }}>{delivered}/{stops.length}</div>
-          <div className="text-xs text-[#5a7a9a] font-mono">completed</div>
+        <div style={{ marginBottom: '10px' }}>
+          <p style={{ fontSize: '15px', color: '#52525B', marginBottom: '2px' }}>Route Complete</p>
+          <p className="mono" style={{ fontSize: '12px', color: '#3F3F46' }}>{delivered} of {stops.length} stops delivered</p>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-mono text-[#5a7a9a]">ROUTE COMPLETION</span>
-          <span className="text-xs font-mono font-bold" style={{ color: progress === 100 ? '#00e676' : '#00c2ff' }}>{progress}%</span>
-        </div>
-        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: '#1e2d45' }}>
-          <motion.div
-            className="h-full rounded-full"
-            animate={{ width: progress + '%' }}
-            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-            style={{ background: progress === 100 ? '#00e676' : 'linear-gradient(90deg, #00c2ff, #0077ff)', boxShadow: '0 0 10px rgba(0,194,255,0.5)' }}
-          />
-        </div>
+      <div style={{ height: '2px', background: '#27272A', borderRadius: '1px', marginBottom: '48px', overflow: 'hidden' }}>
+        <motion.div
+          className="g-bar"
+          animate={{ width: pct + '%' }}
+          transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+          style={{ height: '100%', background: complete ? '#34D399' : '#FAFAFA', borderRadius: '1px' }}
+        />
       </div>
 
       {/* Stop list */}
-      <div className="space-y-3">
+      <div className="g-section">
+        <p className="mono" style={{ fontSize: '11px', color: '#3F3F46', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '0' }}>Delivery Stops</p>
+
         <AnimatePresence>
-          {stops.map(function(stop, i) {
-            const isActive = stop.status === 'active';
-            const isDone = stop.status === 'delivered';
+          {listReady && stops.map(function (stop, i) {
+            const active = stop.status === 'active';
+            const done   = stop.status === 'delivered';
 
             return (
               <motion.div
                 key={stop.id}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{
-                  delay: i * 0.12,
-                  type: 'spring',
-                  stiffness: 280,
-                  damping: 24,
-                }}
-                className="rounded-xl border overflow-hidden transition-all"
-                style={{
-                  background: isActive ? 'rgba(0,194,255,0.05)' : isDone ? 'rgba(0,230,118,0.03)' : '#0d1623',
-                  borderColor: isActive ? '#00c2ff40' : isDone ? '#00e67630' : '#1e2d45',
-                }}
+                transition={{ delay: i * 0.1, duration: 0.45, ease: 'easeOut' }}
+                style={{ borderTop: '1px solid #18181B', padding: '24px 0' }}
               >
-                <div className="p-4">
-                  <div className="flex items-start gap-3">
-                    {/* Stop number */}
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 mt-0.5"
-                      style={{
-                        background: isDone ? '#00e676' : isActive ? '#00c2ff' : '#1e2d45',
-                        color: isDone || isActive ? '#050a14' : '#5a7a9a',
-                        boxShadow: isActive ? '0 0 16px rgba(0,194,255,0.5)' : isDone ? '0 0 12px rgba(0,230,118,0.4)' : 'none',
-                      }}
-                    >
-                      {isDone ? '✓' : stop.id}
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr auto', gap: '20px', alignItems: 'start' }}>
+                  {/* Number */}
+                  <span className="mono" style={{ fontSize: '12px', color: done ? '#34D399' : active ? '#FAFAFA' : '#3F3F46', paddingTop: '2px', transition: 'color 0.4s' }}>
+                    {done ? '✓' : `0${stop.id}`}
+                  </span>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-white truncate">{stop.recipient}</span>
-                        <span
-                          className="shrink-0 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full tracking-widest"
-                          style={{
-                            color: statusText[stop.status],
-                            background: statusColor[stop.status] + '18',
-                            border: `1px solid ${statusColor[stop.status]}40`,
-                          }}
+                  {/* Content */}
+                  <div>
+                    <p style={{ fontSize: '16px', fontWeight: active ? 600 : 400, color: done ? '#52525B' : active ? '#FAFAFA' : '#71717A', marginBottom: '4px', letterSpacing: '-0.01em', textDecoration: done ? 'none' : 'none', transition: 'color 0.4s' }}>
+                      {stop.recipient}
+                    </p>
+                    <p className="mono" style={{ fontSize: '12px', color: '#3F3F46', marginBottom: '2px' }}>{stop.address}</p>
+                    <p className="mono" style={{ fontSize: '12px', color: '#3F3F46' }}>{stop.pkg} · {stop.window}</p>
+
+                    {/* Active action */}
+                    <AnimatePresence>
+                      {active && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          style={{ marginTop: '16px', display: 'flex', gap: '10px' }}
                         >
-                          {statusLabel[stop.status]}
-                        </span>
-                      </div>
-                      <div className="text-xs text-[#5a7a9a] mb-1 truncate">📍 {stop.address}</div>
-                      <div className="flex items-center gap-3 text-xs font-mono">
-                        <span style={{ color: '#a0c8e8' }}>📦 {stop.pkg}</span>
-                        <span className="text-[#5a7a9a]">🕐 {stop.time}</span>
-                      </div>
-                    </div>
+                          <button
+                            onClick={function () { handleMarkDelivered(stop.id); }}
+                            style={{
+                              padding: '9px 18px', background: '#FAFAFA', border: 'none',
+                              borderRadius: '6px', color: '#09090B', fontSize: '13px', fontWeight: 600,
+                              cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif', transition: 'opacity 0.15s',
+                            }}
+                            onMouseEnter={function (e) { e.currentTarget.style.opacity = '0.85'; }}
+                            onMouseLeave={function (e) { e.currentTarget.style.opacity = '1'; }}
+                          >
+                            Mark Delivered →
+                          </button>
+                          <button
+                            style={{
+                              padding: '9px 18px', background: 'transparent',
+                              border: '1px solid #27272A', borderRadius: '6px',
+                              color: '#52525B', fontSize: '13px', cursor: 'pointer',
+                              fontFamily: 'Space Grotesk, sans-serif',
+                            }}
+                          >
+                            Navigate
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
-                  {/* Active stop action */}
-                  <AnimatePresence>
-                    {isActive && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mt-3 pt-3 border-t border-[#1e2d45] flex items-center gap-3"
-                      >
-                        <button
-                          onClick={function() { handleMarkDelivered(stop.id); }}
-                          className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
-                          style={{ background: 'linear-gradient(135deg, #00c2ff, #0077ff)', color: '#fff', boxShadow: '0 0 16px rgba(0,194,255,0.3)' }}
-                          onMouseEnter={function(e) { e.currentTarget.style.boxShadow = '0 0 24px rgba(0,194,255,0.6)'; }}
-                          onMouseLeave={function(e) { e.currentTarget.style.boxShadow = '0 0 16px rgba(0,194,255,0.3)'; }}
-                        >
-                          ✓ Mark Delivered
-                        </button>
-                        <button
-                          className="px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-                          style={{ background: '#0d1e30', border: '1px solid #1e2d45', color: '#5a7a9a' }}
-                        >
-                          Navigate
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {/* Status tag */}
+                  <span className="mono" style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', paddingTop: '3px', color: done ? '#34D399' : active ? '#FAFAFA' : '#3F3F46', transition: 'color 0.4s' }}>
+                    {done ? 'Done' : active ? 'En Route' : 'Pending'}
+                  </span>
                 </div>
-
-                {/* Active pulse bar */}
-                {isActive && (
-                  <motion.div
-                    className="h-0.5 w-full"
-                    animate={{ opacity: [0.5, 1, 0.5] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                    style={{ background: 'linear-gradient(90deg, transparent, #00c2ff, transparent)' }}
-                  />
-                )}
               </motion.div>
             );
           })}
         </AnimatePresence>
+
+        {/* Bottom border */}
+        <div style={{ borderTop: '1px solid #18181B' }} />
+
+        {/* Complete state */}
+        <AnimatePresence>
+          {complete && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+              style={{ paddingTop: '32px', display: 'flex', alignItems: 'center', gap: '16px' }}
+            >
+              <span className="mono" style={{ fontSize: '11px', color: '#34D399', letterSpacing: '0.1em' }}>
+                ✓ ALL DELIVERIES COMPLETE · KOCHI ZONE ALPHA
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Complete state */}
-      <AnimatePresence>
-        {progress === 100 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="mt-6 rounded-xl p-6 text-center border"
-            style={{ background: 'rgba(0,230,118,0.05)', borderColor: '#00e67640' }}
-          >
-            <div className="text-4xl mb-2">🎉</div>
-            <div className="text-lg font-bold text-[#00e676]">All Deliveries Complete!</div>
-            <div className="text-sm text-[#5a7a9a] mt-1">Kochi Zone Alpha route finished.</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
