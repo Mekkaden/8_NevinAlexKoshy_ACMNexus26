@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "name": "8_nevinalexkoshy_acmnexus26",
   "version": "1.0.0",
   "description": "### Conducted by | CLIQUE x ACM MITS |",
@@ -16,10 +15,5 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "socket.io": "^4.8.3"
-=======
-  "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "dotenv": "^17.3.1"
->>>>>>> 20ed5dcdc18eb359243cac3fc1096e109402521b
   }
 }

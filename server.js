@@ -11,11 +11,12 @@ var http = require("http");
 var socketIo = require("socket.io");
 var fs = require("fs");
 var path = require("path");
-var { GoogleGenerativeAI } = require("@google/generative-ai");
+
+// Use Febin's improved AI agent module
+var { parseThreatIntelligence } = require("./ai_agent");
 
 var DATA_FILE = path.join(__dirname, "data.json");
 var PORT = process.env.PORT || 3001;
-var genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ─────────────────────────────────────────────
 // Helper: Read data.json
@@ -33,36 +34,16 @@ function writeData(data) {
 }
 
 // ─────────────────────────────────────────────
-// AI Agent: Call Gemini to parse threat text
-// Returns { blocked_node, reason } or null
+// AI Agent: Call ai_agent.js (parseThreatIntelligence)
+// Returns { blocked_node, reason, severity }
 // ─────────────────────────────────────────────
 async function analyzeThreatWithGemini(text) {
   try {
-    var model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    var prompt =
-      "You are a supply chain threat analyst AI. " +
-      "Given a threat report, identify which supply chain node is blocked. " +
-      "The known nodes are: BLR, Kochi, Coimbatore, TVM. " +
-      "Respond ONLY with a valid JSON object in this exact format: " +
-      '{ "blocked_node": "<NODE_NAME>", "reason": "<short reason>" } ' +
-      "If no known node is threatened, respond with: " +
-      '{ "blocked_node": null, "reason": "No known node affected" } ' +
-      "Threat report: " +
-      text;
-
-    var result = await model.generateContent(prompt);
-    var responseText = result.response.text().trim();
-
-    // Strip markdown code fences if Gemini wraps in ```json ... ```
-    responseText = responseText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-
-    var parsed = JSON.parse(responseText);
-    console.log("[Gemini] Response:", parsed);
-    return parsed;
+    var result = await parseThreatIntelligence(text);
+    console.log("[ai_agent.js] Response:", result);
+    return result;
   } catch (err) {
-    console.error("[Gemini] Error:", err.message);
-    // Fallback: keyword detection
+    console.error("[ai_agent.js] Error:", err.message);
     return fallbackAnalyze(text);
   }
 }
