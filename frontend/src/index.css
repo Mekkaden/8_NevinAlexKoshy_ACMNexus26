@@ -1,38 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
 @import "tailwindcss";
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --bg:       #09090B;
-  --surface:  #111113;
-  --surface2: #18181B;
-  --border:   #27272A;
-  --muted:    #52525B;
-  --muted2:   #3F3F46;
-  --text:     #FAFAFA;
-  --text2:    #A1A1AA;
-  --green:    #34D399;
-  --red:      #F87171;
-  --amber:    #FBBF24;
-}
-
 html, body, #root {
   height: 100%;
   font-family: 'Space Grotesk', sans-serif;
-  background: var(--bg);
-  color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #F2F1EC;
+  color: #111827;
 }
 
 .mono { font-family: 'DM Mono', monospace; }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-/* Custom selection */
-::selection { background: rgba(52, 211, 153, 0.2); color: var(--green); }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 2px; }
