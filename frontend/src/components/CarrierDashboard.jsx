@@ -68,6 +68,7 @@ function CarrierDashboard() {
   const [currentRoute, setCurrentRoute] = useState('BLR → KOCHI → TVM');
   const [acknowledged, setAcknowledged] = useState(false);
   const [events, setEvents]             = useState([]);
+  const [routeNodes, setRouteNodes]     = useState(["BLR", "COK", "TVM"]);
 
   useEffect(function () {
     const ctx = gsap.context(function () {
@@ -82,11 +83,33 @@ function CarrierDashboard() {
     socket.on('connect',      function () { setSocketStatus('connected');    addEvent('Connected to dispatch'); });
     socket.on('disconnect',   function () { setSocketStatus('disconnected'); });
     socket.on('connect_error',function () { setSocketStatus('error'); });
+    
+    // Listen for initial route state
+    socket.on('route_init', function (routeObj) {
+      if (routeObj && routeObj.path) setRouteNodes(routeObj.path);
+    });
+    
+    // Listen for route updates
     socket.on('route_updated', function (d) {
-      const r = d && d.newRoute ? d.newRoute : 'BLR → COIMBATORE → TVM';
-      setNewRoute(r); setShowModal(true);
+      if (d.newPath) {
+        setNewRoute(d.newPath.join(' → '));
+        setRouteNodes(d.newPath);
+      } else {
+        setNewRoute('BLR → COIMBATORE → TVM'); 
+      }
+      setShowModal(true);
       addEvent('⚠ ROUTE_UPDATED received from dispatch');
     });
+    
+    // Listen for route reset
+    socket.on('route_reset', function (routeObj) {
+      if (routeObj && routeObj.path) {
+        setRouteNodes(routeObj.path);
+        setCurrentRoute(routeObj.path.join(' → '));
+      }
+      addEvent('Route reset to default');
+    });
+
     return function () { socket.disconnect(); };
   }, []);
 
@@ -102,13 +125,25 @@ function CarrierDashboard() {
   }
 
   const statusColor = { connected: '#10B981', connecting: '#F59E0B', disconnected: '#EF4444', error: '#EF4444' };
-  const stops = [
-    { name: 'Bangalore Hub',    status: 'done',    km: '0 km' },
-    { name: 'Hosur Checkpoint', status: 'done',    km: '45 km' },
-    { name: 'Salem Junction',   status: 'active',  km: '120 km' },
-    { name: acknowledged ? 'Coimbatore (Alt)' : 'Kochi Port', status: 'upcoming', km: acknowledged ? '95 km' : '180 km' },
-    { name: 'Trivandrum Hub',   status: 'upcoming', km: acknowledged ? '295 km' : '420 km' },
-  ];
+  
+  const NODE_LABELS = {
+    "BLR": "Bangalore Hub",
+    "COK": "Kochi Port",
+    "CBE": "Coimbatore Node",
+    "TVM": "Trivandrum Hub"
+  };
+
+  const stops = routeNodes.map(function(node, i) {
+    // Fake the progress logic for demo visual
+    let status = 'upcoming';
+    if (i === 0) status = 'done';
+    if (i === 1) status = 'active'; 
+    return {
+      name: NODE_LABELS[node] || node,
+      status: status,
+      km: (i * 175) + ' km'
+    };
+  });
 
   return (
     <Layout title="Driver Dashboard · TRK-009" status={`DISPATCH ${socketStatus.toUpperCase()}`} statusOk={socketStatus === 'connected'}>

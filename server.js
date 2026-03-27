@@ -63,30 +63,81 @@ function fallbackAnalyze(text) {
 }
 
 // ─────────────────────────────────────────────
-// Route recalculation (deterministic hardcode)
+// Dynamic Pathfinding Algorithm
+// Finds shortest path from BLR to TVM avoiding blockedNode
 // ─────────────────────────────────────────────
 function recalculateRoute(blockedNode, data) {
   var original = data.currentRoute.path.slice();
+  
+  // Only recalculate if the current route is blocked
+  if (original.indexOf(blockedNode) === -1) {
+    return { rerouted: false, currentPath: original, blockedNode: blockedNode };
+  }
 
-  if (blockedNode === "Kochi" && original.indexOf("Kochi") !== -1) {
-    data.currentRoute.path = ["BLR", "Coimbatore", "TVM"];
-    data.currentRoute.status = "rerouted";
-    data.threats.push({
-      city: blockedNode,
-      timestamp: new Date().toISOString(),
-      action: "Rerouted via Coimbatore"
+  // 1. Build adjacency list from data.graph.edges
+  var adj = {};
+  data.graph.nodes.forEach(n => adj[n] = []);
+  data.graph.edges.forEach(e => {
+    adj[e.from].push({ to: e.to, weight: e.weight });
+    adj[e.to].push({ to: e.from, weight: e.weight }); // undirected
+  });
+
+  // 2. Simple DFS to find all paths from start to end, skipping blockedNode
+  var start = original[0];
+  var end = original[original.length - 1];
+  var paths = [];
+
+  function dfs(curr, target, visited, currentPath, currentCost) {
+    if (curr === target) {
+      paths.push({ path: [...currentPath], cost: currentCost });
+      return;
+    }
+    adj[curr].forEach(neighbor => {
+      if (!visited.has(neighbor.to) && neighbor.to !== blockedNode) {
+        visited.add(neighbor.to);
+        currentPath.push(neighbor.to);
+        dfs(neighbor.to, target, visited, currentPath, currentCost + neighbor.weight);
+        currentPath.pop();
+        visited.delete(neighbor.to);
+      }
     });
-    return {
-      rerouted: true,
-      originalPath: original,
-      newPath: data.currentRoute.path,
-      blockedNode: blockedNode
-    };
+  }
+
+  dfs(start, end, new Set([start]), [start], 0);
+
+  if (paths.length === 0) {
+    // No path exists
+    return { rerouted: false, currentPath: original, blockedNode: blockedNode, error: "No safe route" };
+  }
+
+  // 3. Pick shortest path
+  paths.sort((a, b) => a.cost - b.cost);
+  var optimalPath = paths[0].path;
+
+  // 4. Update state variables dynamically
+  data.currentRoute.path = optimalPath;
+  data.currentRoute.status = "rerouted";
+  data.threats.push({
+    city: blockedNode,
+    timestamp: new Date().toISOString(),
+    action: "Dynamically rerouted via " + optimalPath.filter(x => x !== start && x !== end).join(', ')
+  });
+
+  // 5. Instantly redirect active shipments logically in the DB
+  if (data.active_shipments) {
+    data.active_shipments.forEach(shp => {
+       if (shp.next_node === blockedNode || shp.next_node === "COK") {
+         shp.rerouted = true;
+         // Assign the first intermediate node of the new path as the next node
+         shp.next_node = optimalPath[1] || end; 
+       }
+    });
   }
 
   return {
-    rerouted: false,
-    currentPath: original,
+    rerouted: true,
+    originalPath: original,
+    newPath: optimalPath,
     blockedNode: blockedNode
   };
 }

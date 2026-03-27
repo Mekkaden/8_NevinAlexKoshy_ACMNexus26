@@ -16,7 +16,8 @@ function NodeDashboard() {
   const [dispatchLog, setDispatchLog] = useState([]);
   const [optimizing, setOptimizing]   = useState(false);
   const [inventory, setInventory]     = useState([]);
-  const [shipments, setShipments]     = useState([]);
+  const [allShipments, setAllShipments] = useState([]);
+  const [selectedNode, setSelectedNode] = useState('COK');
 
   useEffect(function () {
     // Fetch live inventory and shipments from backend
@@ -32,9 +33,10 @@ function NodeDashboard() {
           eta: new Date(shp.estimated_arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
           cargo: shp.cargo,
           from: shp.origin + ' Hub',
-          rerouted: shp.rerouted
+          rerouted: shp.rerouted,
+          next_node: shp.next_node
         }));
-        setShipments(mappedShipments);
+        setAllShipments(mappedShipments);
       })
       .catch(() => {});
 
@@ -43,7 +45,27 @@ function NodeDashboard() {
       gsap.from('.g-card', { opacity: 0, y: 16, stagger: 0.08, delay: 0.25, duration: 0.5 });
     }, contentRef);
     setTimeout(function () { setListReady(true); }, 300);
-    return function () { ctx.revert(); };
+    
+    // Poll every 3s to keep active_shipments live
+    const interval = setInterval(() => {
+      fetch('/api/node').then(r => r.json()).then(data => {
+        const mappedShipments = (data.shipments || []).map(shp => ({
+          id: shp.id,
+          carrier: shp.truck_id,
+          eta: new Date(shp.estimated_arrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          cargo: shp.cargo,
+          from: shp.origin + ' Hub',
+          rerouted: shp.rerouted,
+          next_node: shp.next_node
+        }));
+        setAllShipments(mappedShipments);
+      }).catch(()=>{});
+    }, 3000);
+    
+    return function () { 
+      ctx.revert(); 
+      clearInterval(interval);
+    };
   }, []);
 
   async function handleOptimize() {
@@ -55,7 +77,7 @@ function NodeDashboard() {
       const res = await fetch('/api/optimize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inventory: INVENTORY, shipments: SHIPMENTS })
+        body: JSON.stringify({ inventory: inventory, shipments: visibleShipments })
       });
       const data = await res.json();
       
@@ -78,14 +100,26 @@ function NodeDashboard() {
     }
   }
 
-        // Replace INVENTORY -> inventory
-        // Replace SHIPMENTS -> shipments
-        const critical = inventory.filter(function (i) { return i.status === 'critical'; }).length;
-        const low      = inventory.filter(function (i) { return i.status === 'low'; }).length;
+  const critical = inventory.filter(function (i) { return i.status === 'critical'; }).length;
+  const low      = inventory.filter(function (i) { return i.status === 'low'; }).length;
+
+  const visibleShipments = allShipments.filter(s => s.next_node === selectedNode);
+
+  const nodeName = selectedNode === 'COK' ? 'KOCHI-01' : 'COIMBATORE-02';
 
   return (
-    <Layout title="Node Operations · KOCHI-01" status="OPERATIONAL">
+    <Layout title={`Node Operations · ${nodeName}`} status="OPERATIONAL">
       <div ref={contentRef}>
+      
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+             <select 
+               value={selectedNode} 
+               onChange={e => setSelectedNode(e.target.value)}
+               style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#FFFFFF', fontSize: '12px', fontWeight: 600, fontFamily: 'Space Grotesk, sans-serif', outline: 'none', cursor: 'pointer' }}>
+               <option value="COK">🟢 KOCHI Transit Node</option>
+               <option value="CBE">🟢 COIMBATORE Dist. Node</option>
+             </select>
+        </div>
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '20px' }}>
@@ -93,7 +127,7 @@ function NodeDashboard() {
             { label: 'Total SKUs',      value: String(inventory.length), sub: 'tracked items',      accent: '#3B82F6', icon: Package },
             { label: 'Critical',        value: String(critical),         sub: critical ? 'reorder now' : 'none critical', accent: critical ? '#EF4444' : '#9CA3AF', icon: AlertTriangle },
             { label: 'Low Stock',       value: String(low),              sub: low ? 'monitor closely' : 'all ok', accent: low ? '#F59E0B' : '#9CA3AF', icon: Package },
-            { label: 'Incoming Today',  value: String(shipments.length), sub: 'shipments expected', accent: '#10B981', icon: TruckIcon },
+            { label: 'Incoming Today',  value: String(visibleShipments.length), sub: 'shipments expected', accent: '#10B981', icon: TruckIcon },
           ].map(function (s) { return <div key={s.label} className="g-stat"><StatCard {...s} /></div>; })}
         </div>
 
@@ -139,12 +173,13 @@ function NodeDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <Card className="g-card">
               <SectionLabel>Incoming Today</SectionLabel>
-              {shipments.map(function (shp, i) {
+              {visibleShipments.length === 0 && <p style={{fontSize: '13px', color: '#9CA3AF', marginTop: '10px', fontFamily: 'DM Mono, monospace'}}>No incoming shipments.</p>}
+              {visibleShipments.map(function (shp, i) {
                 return (
                   <motion.div key={shp.id}
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 + i * 0.1 }}
-                    style={{ padding: '10px 0', borderBottom: i < shipments.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                    style={{ padding: '10px 0', borderBottom: i < visibleShipments.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                       <span className="mono" style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>{shp.eta}</span>
                       {shp.rerouted && <span className="mono" style={{ fontSize: '9px', color: '#F59E0B', background: '#FFFBEB', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.06em' }}>REROUTED</span>}
@@ -163,8 +198,8 @@ function NodeDashboard() {
                 <SectionLabel>AI Optimizer</SectionLabel>
               </div>
               <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '14px' }}>AI-assisted dispatch sequencing</p>
-              <button onClick={handleOptimize} disabled={optimizing}
-                style={{ width: '100%', padding: '10px', background: optimizing ? '#F9F8F4' : '#111827', border: '1px solid', borderColor: optimizing ? '#E5E4DE' : '#111827', borderRadius: '8px', color: optimizing ? '#9CA3AF' : '#FFFFFF', fontSize: '12px', fontWeight: 600, cursor: optimizing ? 'not-allowed' : 'pointer', fontFamily: 'Space Grotesk, sans-serif', marginBottom: dispatchLog.length > 0 ? '12px' : '0', transition: 'all 0.15s' }}>
+              <button onClick={handleOptimize} disabled={optimizing || visibleShipments.length === 0}
+                style={{ width: '100%', padding: '10px', background: optimizing || visibleShipments.length===0 ? '#F9F8F4' : '#111827', border: '1px solid', borderColor: optimizing || visibleShipments.length===0 ? '#E5E4DE' : '#111827', borderRadius: '8px', color: optimizing || visibleShipments.length===0 ? '#9CA3AF' : '#FFFFFF', fontSize: '12px', fontWeight: 600, cursor: optimizing || visibleShipments.length===0 ? 'not-allowed' : 'pointer', fontFamily: 'Space Grotesk, sans-serif', marginBottom: dispatchLog.length > 0 ? '12px' : '0', transition: 'all 0.15s' }}>
                 {optimizing ? 'Running…' : 'Run Optimization →'}
               </button>
               {dispatchLog.length > 0 && (
