@@ -111,9 +111,9 @@ function LoginPage() {
                 <Zap size={18} color="#0E2030" strokeWidth={2.5} fill="#0E2030" />
               </div>
               <div>
-                <p style={{ fontSize: '18px', fontWeight: 700, color: '#FAFAFA', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                  NEXUS26
-                </p>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#FAFAFA', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+                  LOG LAB
+                </div>
                 <p style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginTop: '3px' }}>
                   SUPPLY CHAIN OS
                 </p>
@@ -248,8 +248,8 @@ function LoginPage() {
             </form>
 
             {/* Footer hint */}
-            <p style={{ marginTop: '28px', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'rgba(255,255,255,0.15)', textAlign: 'center', letterSpacing: '0.06em' }}>
-              ACM NEXUS 26 · CLIQUE × MITS · SECURED SESSION
+            <p className="mono" style={{ fontSize: '10px', color: '#6B7280', margin: 0, letterSpacing: '0.04em' }}>
+              LOG LAB · CLIQUE × MITS · SECURED SESSION
             </p>
           </div>
         </div>

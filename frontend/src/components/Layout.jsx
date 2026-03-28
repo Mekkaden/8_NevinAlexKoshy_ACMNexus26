@@ -60,7 +60,7 @@ function Layout({ children, title, status, statusOk }) {
               <Zap size={14} color="#0E2030" strokeWidth={2.5} fill="#0E2030" />
             </div>
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#FAFAFA', letterSpacing: '-0.02em', lineHeight: 1 }}>NEXUS26</p>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#FAFAFA', letterSpacing: '-0.02em', lineHeight: 1 }}>LOG LAB</p>
               <p className="mono" style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', marginTop: '2px' }}>SUPPLY CHAIN OS</p>
             </div>
           </div>

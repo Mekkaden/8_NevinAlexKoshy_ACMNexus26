@@ -2,81 +2,41 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import { io } from 'socket.io-client';
-import { CheckCircle2, Circle, Clock, MapPin } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, MapPin, Cpu, Zap } from 'lucide-react';
 import Layout, { Card, StatCard, SectionLabel } from './Layout';
-
-/* ─── Static fallback stops (shown when no live shipments exist) ─── */
-const STATIC_STOPS = [
-  { id: 1, recipient: 'Kerala Industrial Co.',  address: '12, MG Road, Ernakulam',     pkg: 'Control Modules ×10',   window: '10:00 – 10:30', status: 'delivered' },
-  { id: 2, recipient: 'Coastal Supplies Ltd.',   address: '7, Marine Drive, Kochi',      pkg: 'Safety Mesh ×20 rolls', window: '11:00 – 11:30', status: 'delivered' },
-  { id: 3, recipient: 'TechNode Hardware',        address: '45, Palarivattom Junction',   pkg: 'Hydraulic Fluid ×12',   window: '12:00 – 12:30', status: 'active' },
-  { id: 4, recipient: 'GenTech Solutions',        address: '3, Edappally Toll, NH-66',    pkg: 'Copper Cable ×8 reels', window: '13:30 – 14:00', status: 'upcoming' },
-  { id: 5, recipient: 'Nexus Warehouse Alpha',    address: '88, CSEZ Gate, Kakkanad',     pkg: 'Mixed Cargo 0.8T',      window: '15:00 – 15:45', status: 'upcoming' },
-];
-
-/* Map a live shipment to a delivery stop entry */
-function shipmentToStop(shp, idx, baseStatuses) {
-  const arrivalTime = shp.estimated_arrival
-    ? new Date(shp.estimated_arrival).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
-    : '—';
-  const departTime = shp.departed_at
-    ? new Date(shp.departed_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
-    : '—';
-  return {
-    id: shp.id,
-    recipient: `${shp.destination} Hub — ${shp.truck_id}`,
-    address: `Next Node: ${shp.next_node || shp.destination}${shp.rerouted ? ' (Rerouted)' : ''}`,
-    pkg: shp.cargo,
-    window: `${departTime} – ${arrivalTime}`,
-    status: baseStatuses[idx] || 'upcoming',
-    isLive: true,
-    rerouted: shp.rerouted,
-    estimated_arrival: shp.estimated_arrival,
-  };
-}
 
 function SubsidiaryDashboard() {
   const contentRef  = useRef(null);
-  const [stops, setStops]         = useState(STATIC_STOPS);
+  const [stops, setStops]         = useState([]);
+  const [cargoPayload, setCargoPayload] = useState("No inbound cargo detected.");
   const [listReady, setListReady] = useState(false);
-  const [isLiveData, setIsLiveData] = useState(false);
-  const [estDone, setEstDone]       = useState('15:45');
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [estDone, setEstDone]       = useState('—');
 
   function loadState() {
     fetch('/api/state')
       .then(r => r.json())
       .then(data => {
+        // Find inbound cargo to Kochi (or general active cargo)
         const shipments = data.active_shipments || [];
         if (shipments.length > 0) {
-          // Map live shipments to stop format
-          const baseStatuses = ['active', 'upcoming', 'upcoming'];
-          const liveStops = shipments.map((shp, i) => shipmentToStop(shp, i, baseStatuses));
-
-          // Pad with static fallback stops if fewer than 3 live shipments
-          const padded = liveStops.length < STATIC_STOPS.length
-            ? [
-                ...liveStops,
-                ...STATIC_STOPS.slice(liveStops.length).map(s => ({ ...s, status: 'upcoming', isLive: false }))
-              ]
-            : liveStops;
-
-          setStops(padded);
-          setIsLiveData(true);
-
-          // Derive est. done from last shipment arrival
-          const lastArrival = shipments[shipments.length - 1]?.estimated_arrival;
-          if (lastArrival) {
-            setEstDone(new Date(lastArrival).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }));
-          }
+          const combinedCargo = shipments.map(s => s.cargo).join(', ');
+          setCargoPayload(combinedCargo);
         } else {
-          setStops(STATIC_STOPS);
-          setIsLiveData(false);
+          setCargoPayload("No inbound cargo detected.");
+        }
+
+        // Load the agentic last mile route if generated
+        const routeStops = data.last_mile_route || [];
+        setStops(routeStops);
+        
+        if (routeStops.length > 0) {
+          setEstDone(routeStops[routeStops.length - 1].window.split(' - ')[1] || '17:00');
+        } else {
+          setEstDone('—');
         }
       })
-      .catch(() => {
-        setStops(STATIC_STOPS);
-        setIsLiveData(false);
-      });
+      .catch((e) => console.error("Failed to load state", e));
   }
 
   useEffect(function () {
@@ -90,22 +50,16 @@ function SubsidiaryDashboard() {
     return () => ctx.revert();
   }, []);
 
-  // Socket.io — update when route changes
+  // Socket.io — update when state changes globally
   useEffect(function () {
     const socket = io('http://localhost:3001', { transports: ['websocket', 'polling'] });
-
-    socket.on('state_updated', function () {
-      loadState();
-    });
-
-    socket.on('route_reset', function () {
-      loadState();
-    });
-
+    socket.on('state_updated', loadState);
+    socket.on('route_reset', loadState);
     return () => socket.disconnect();
   }, []);
 
   function handleMarkDelivered(id) {
+    // In a real app we'd save this to backend, but local state is fine for UI feeling
     setStops(prev => {
       const idx = prev.findIndex(s => s.id === id);
       return prev.map((s, i) => {
@@ -116,38 +70,83 @@ function SubsidiaryDashboard() {
     });
   }
 
+  async function handleOptimize() {
+    setIsOptimizing(true);
+    setStops([]); // Clear UI to show it's working
+    try {
+      await fetch('/api/last-mile/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city: 'Kochi', cargo: cargoPayload })
+      });
+      // socket.io state_updated will trigger loadState() rapidly
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsOptimizing(false);
+    }
+  }
+
   function handleNavigate(stop) {
     const query = encodeURIComponent(stop.address);
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
   }
 
-  const delivered = stops.filter(s => s.status === 'delivered').length;
-  const pct       = Math.round((delivered / stops.length) * 100);
-  const complete  = pct === 100;
+  // Local active state logic (since backend doesn't track active drop by drop)
+  // Give the first non-delivered stop the 'active' status visually
+  const localStops = stops.map((s, i) => {
+    if (!s.status) {
+      const allPrevDelivered = stops.slice(0, i).every(prev => prev.status === 'delivered');
+      s.status = allPrevDelivered ? 'active' : 'upcoming';
+    }
+    return s;
+  });
+
+  const delivered = localStops.filter(s => s.status === 'delivered').length;
+  const totalStops = localStops.length;
+  const pct       = totalStops > 0 ? Math.round((delivered / totalStops) * 100) : 0;
+  const complete  = totalStops > 0 && pct === 100;
 
   return (
     <Layout
       title="Last-Mile Delivery · Kochi Zone"
-      status={complete ? 'ROUTE COMPLETE' : `${delivered}/${stops.length} DELIVERED`}
-      statusOk={complete}
+      status={complete ? 'ROUTE COMPLETE' : totalStops > 0 ? `${delivered}/${totalStops} DELIVERED` : 'AWAITING DISPATCH'}
+      statusOk={complete || totalStops === 0}
     >
       <div ref={contentRef}>
 
-        {/* Live data badge */}
-        {isLiveData && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-            <span className="mono" style={{ fontSize: '10px', color: '#10B981', background: '#F0FDF4', border: '1px solid #D1FAE5', padding: '4px 10px', borderRadius: '20px', letterSpacing: '0.06em' }}>
-              ● LIVE DATA
-            </span>
+        {/* Top Controls */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
+          <div>
+            <SectionLabel>Inbound Freight Payload</SectionLabel>
+            <p className="mono" style={{ fontSize: '13px', color: '#111827', fontWeight: 500 }}>{cargoPayload}</p>
           </div>
-        )}
+          <button 
+            onClick={handleOptimize} 
+            disabled={isOptimizing || cargoPayload === "No inbound cargo detected."}
+            style={{
+              padding: '10px 18px', background: isOptimizing ? 'rgba(59,130,246,0.1)' : '#EFF6FF', 
+              border: '1px solid #BFDBFE', borderRadius: '8px', 
+              color: '#2563EB', fontSize: '12px', fontWeight: 600, 
+              display: 'flex', alignItems: 'center', gap: '8px', cursor: isOptimizing ? 'wait' : 'pointer',
+              fontFamily: 'Space Grotesk, sans-serif', transition: 'all 0.2s'
+            }}
+          >
+            {isOptimizing ? (
+              <span style={{ width: '14px', height: '14px', border: '2px solid #3B82F6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Cpu size={14} />
+            )}
+            {isOptimizing ? 'Agent routing via Mapbox AI...' : 'Optimize Route (Agentic AI)'}
+          </button>
+        </div>
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '20px' }}>
           {[
             { label: 'Completion',  value: pct + '%',                    sub: 'route progress',         accent: complete ? '#10B981' : '#3B82F6', icon: CheckCircle2 },
-            { label: 'Delivered',   value: String(delivered),             sub: `of ${stops.length} stops`, accent: '#10B981', icon: CheckCircle2 },
-            { label: 'Remaining',   value: String(stops.length - delivered), sub: 'stops pending',       accent: stops.length - delivered > 0 ? '#F59E0B' : '#9CA3AF', icon: Circle },
+            { label: 'Delivered',   value: String(delivered),             sub: `of ${totalStops || 0} stops`, accent: '#10B981', icon: CheckCircle2 },
+            { label: 'Remaining',   value: String(totalStops - delivered), sub: 'stops pending',       accent: totalStops - delivered > 0 ? '#F59E0B' : '#9CA3AF', icon: Circle },
             { label: 'Est. Done',   value: estDone,                      sub: 'end of route',           accent: '#9CA3AF', icon: Clock },
           ].map(s => <div key={s.label} className="g-stat"><StatCard {...s} /></div>)}
         </div>
@@ -162,27 +161,33 @@ function SubsidiaryDashboard() {
             <motion.div
               animate={{ width: pct + '%' }}
               transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-              style={{ height: '100%', background: complete ? '#10B981' : '#111827', borderRadius: '3px' }}
+              style={{ height: '100%', background: complete ? '#10B981' : totalStops === 0 ? '#E5E7EB' : '#111827', borderRadius: '3px' }}
             />
           </div>
         </Card>
 
         {/* Stop list */}
-        <Card className="g-card" style={{ padding: '0', overflow: 'hidden' }}>
+        <Card className="g-card" style={{ padding: '0', overflow: 'hidden', minHeight: '300px' }}>
           <div style={{ padding: '20px 24px 14px', borderBottom: '1px solid #F3F4F6' }}>
-            <SectionLabel>Delivery Stops</SectionLabel>
+            <SectionLabel>Agentic Delivery Vector</SectionLabel>
           </div>
 
           <AnimatePresence>
-            {listReady && stops.map(function (stop, i) {
+            {listReady && localStops.length === 0 && !isOptimizing && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '60px', textAlign: 'center', color: '#9CA3AF', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif' }}>
+                 No route computed. Click "Optimize Route" to trigger the routing agent.
+              </motion.div>
+            )}
+
+            {listReady && localStops.map(function (stop, i) {
               const active = stop.status === 'active';
               const done   = stop.status === 'delivered';
 
               return (
-                <motion.div key={stop.id}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08, duration: 0.4 }}
-                  style={{ borderBottom: i < stops.length - 1 ? '1px solid #F9F8F6' : 'none', background: active ? '#FAFAF8' : 'transparent', transition: 'background 0.3s' }}
+                <motion.div key={stop.recipient + i}
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.15, duration: 0.5, type: 'spring' }}
+                  style={{ borderBottom: i < localStops.length - 1 ? '1px solid #F9F8F6' : 'none', background: active ? '#FAFAF8' : 'transparent', transition: 'background 0.3s' }}
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr auto', gap: '16px', alignItems: 'start', padding: '16px 24px' }}>
 
@@ -204,16 +209,25 @@ function SubsidiaryDashboard() {
                         <span style={{ fontSize: '14px', fontWeight: active ? 600 : 500, color: done ? '#9CA3AF' : '#111827', textDecoration: done ? 'line-through' : 'none', transition: 'color 0.3s' }}>
                           {stop.recipient}
                         </span>
-                        {active && <span className="mono" style={{ fontSize: '9px', color: '#111827', background: '#F3F4F6', padding: '2px 7px', borderRadius: '4px', letterSpacing: '0.08em' }}>EN ROUTE</span>}
+                        {active && <span className="mono" style={{ fontSize: '9px', color: '#111827', background: '#F3F4F6', padding: '2px 7px', borderRadius: '4px', letterSpacing: '0.08em' }}>NEXT DROP</span>}
                         {done   && <span className="mono" style={{ fontSize: '9px', color: '#10B981', background: '#F0FDF4', padding: '2px 7px', borderRadius: '4px', letterSpacing: '0.08em' }}>DELIVERED</span>}
-                        {stop.rerouted && <span className="mono" style={{ fontSize: '9px', color: '#F59E0B', background: '#FFFBEB', padding: '2px 7px', borderRadius: '4px', letterSpacing: '0.08em' }}>REROUTED</span>}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
                         <span style={{ fontSize: '12px', color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <MapPin size={10} color="#9CA3AF" /> {stop.address}
                         </span>
                       </div>
-                      <p className="mono" style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '1px' }}>{stop.pkg} · {stop.window}</p>
+                      <p className="mono" style={{ fontSize: '11px', color: '#111827', marginBottom: '6px' }}>{stop.pkg} · {stop.window}</p>
+                      
+                      {/* Agent Reasoning Box */}
+                      {stop.reasoning && (
+                        <div style={{ background: '#F8FAFC', padding: '8px 12px', borderRadius: '6px', borderLeft: '2px solid #3B82F6', marginTop: '6px' }}>
+                          <p style={{ fontSize: '11px', color: '#475569', fontFamily: 'Space Grotesk, sans-serif', margin: 0, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                            <Zap size={10} color="#3B82F6" style={{ marginTop: '2px', flexShrink: 0 }} /> 
+                            <span>{stop.reasoning}</span>
+                          </p>
+                        </div>
+                      )}
 
                       {/* Active stop actions */}
                       <AnimatePresence>
@@ -260,6 +274,7 @@ function SubsidiaryDashboard() {
         </Card>
 
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </Layout>
   );
 }

@@ -13,6 +13,7 @@ const Groq = require("groq-sdk");
 // ─── Initialise Groq Clients ──────────────────────────────────────────────────
 const groqThreat    = new Groq({ apiKey: process.env.GEMINI_API_KEY_THREAT });
 const groqDispatch  = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groqLastMile  = new Groq({ apiKey: process.env.GROQ_API_KEY_LAST_MILE });
 
 // ─── System Prompt — Threat ───────────────────────────────────────────────────
 const THREAT_SYSTEM_PROMPT = `You are an advanced Supply Chain Threat Analyzer AI.
@@ -125,8 +126,128 @@ async function generateDispatchOptimization(inventory, shipments) {
     }
 }
 
+// ─── Agentic Last-Mile Optimizer (Tool Calling) ─────────────────────────────
+const LAST_MILE_SYSTEM_PROMPT = `You are an autonomous Supply Chain Routing Agent.
+Your goal is to generate a final JSON array of delivery stops for the Last-Mile driver.
+Use the provided tools to fetch facility locations and check traffic.
+CRITICAL: You MUST output ONLY the final JSON array in your final response. 
+The JSON array must have exactly this format:
+[ { "id": "uuid", "recipient": "name", "address": "location", "pkg": "cargo string", "window": "09:00 - 10:00", "reasoning": "why?" } ]
+DO NOT wrap the JSON in markdown fences.`;
+
+const lastMileTools = [
+    {
+        type: "function",
+        function: {
+            name: "getFacilityDatabase",
+            description: "Get physical addresses for facilities in a city.",
+            parameters: {
+                type: "object",
+                properties: {
+                    city: { type: "string" },
+                    facilityType: { type: "string", description: "'Medical', 'Industrial', or 'Commercial'" }
+                },
+                required: ["city", "facilityType"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "getLiveTraffic",
+            description: "Check current traffic congestion for a specific road or area.",
+            parameters: {
+                type: "object",
+                properties: { location: { type: "string" } },
+                required: ["location"]
+            }
+        }
+    }
+];
+
+function getFacilityDatabase(args) {
+    try {
+        var params = JSON.parse(args);
+        var city = params.city || "City";
+        var type = params.facilityType || "Commercial";
+        if (type.includes('Medical')) return JSON.stringify({ name: city + " General Hospital", address: "12 Health Avenue, " + city });
+        if (type.includes('Industrial')) return JSON.stringify({ name: city + " Industrial Park", address: "88 Outskirts Highway, " + city });
+        return JSON.stringify({ name: city + " Central Hub", address: "1 Main Street, " + city });
+    } catch (e) { return "{}"; }
+}
+
+function getLiveTraffic(args) {
+    try {
+        var params = JSON.parse(args);
+        var loc = params.location || "";
+        if (loc.includes("Main") || loc.includes("Health")) return JSON.stringify({ status: "High Congestion", advice: "Deliver before 10:00 AM." });
+        return JSON.stringify({ status: "Clear", advice: "Safe to deliver anytime." });
+    } catch (e) { return "{}"; }
+}
+
+async function generateAgenticRoute(city, cargo) {
+    console.log("[Agent] Starting Last-Mile Agentic Loop for:", city);
+    var messages = [
+        { role: "system", content: LAST_MILE_SYSTEM_PROMPT },
+        { role: "user",   content: "Generate an optimized 3-stop delivery route for city: " + city + ".\nCargo Payload: " + cargo }
+    ];
+
+    var maxLoops = 5; // Safety break
+    while (maxLoops > 0) {
+        maxLoops--;
+        var completion = await groqLastMile.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
+            messages: messages,
+            tools: lastMileTools,
+            tool_choice: "auto",
+            temperature: 0.1
+        });
+
+        var responseMessage = completion.choices[0].message;
+        messages.push(responseMessage);
+
+        if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+            for (var i = 0; i < responseMessage.tool_calls.length; i++) {
+                var toolCall = responseMessage.tool_calls[i];
+                console.log("[Agent] Action: Calling Tool ->", toolCall.function.name, toolCall.function.arguments);
+                var functionResponse = "";
+                if (toolCall.function.name === "getFacilityDatabase") {
+                    functionResponse = getFacilityDatabase(toolCall.function.arguments);
+                } else if (toolCall.function.name === "getLiveTraffic") {
+                    functionResponse = getLiveTraffic(toolCall.function.arguments);
+                }
+                messages.push({
+                    tool_call_id: toolCall.id,
+                    role: "tool",
+                    name: toolCall.function.name,
+                    content: functionResponse,
+                });
+            }
+        } else {
+            // No more tools, final response
+            console.log("[Agent] Final JSON generated.");
+            var cleaned = stripMarkdownFormatting(responseMessage.content);
+            try {
+                var parsed = JSON.parse(cleaned);
+                if (Array.isArray(parsed)) return parsed;
+                throw new Error("Not an array");
+            } catch(e) {
+                console.error("[Agent] Parse error:", e.message);
+                break;
+            }
+        }
+    }
+    
+    // Fallback if loop breaks or parsing fails
+    return [
+        { id: "fallback1", recipient: "Local Clinic", address: "1 Health Ave, " + city, pkg: "Priority Medical", window: "09:00 - 10:00", reasoning: "Emergency agent fallback." },
+        { id: "fallback2", recipient: "Industrial Hub", address: "88 Hwy, " + city, pkg: "Standard Cargo", window: "11:00 - 12:00", reasoning: "Standard drop." }
+    ];
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 module.exports = {
     parseThreatIntelligence,
-    generateDispatchOptimization
+    generateDispatchOptimization,
+    generateAgenticRoute
 };

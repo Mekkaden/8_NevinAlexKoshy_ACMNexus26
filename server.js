@@ -1,5 +1,5 @@
 /**
- * ACM NEXUS 26 – Self-Healing Supply Chain – Backend Server
+ * LOG LAB – Self-Healing Supply Chain – Backend Server
  * Stack: Node.js, Express, Socket.io, Gemini AI, native 'fs'
  * No database. data.json is the in-memory graph store.
  */
@@ -211,7 +211,7 @@ var fs = require("fs");
 var path = require("path");
 
 // Use Febin's improved AI agent module
-var { parseThreatIntelligence, generateDispatchOptimization } = require("./ai_agent");
+var { parseThreatIntelligence, generateDispatchOptimization, generateAgenticRoute } = require("./ai_agent");
 
 var DATA_FILE = path.join(__dirname, "data.json");
 var PORT = process.env.PORT || 3001;
@@ -406,7 +406,7 @@ function startServer() {
 
   // Health
   app.get("/", function (req, res) {
-    res.json({ status: "ok", message: "ACM NEXUS 26 – Threat Server" });
+    res.json({ status: "ok", message: "LOG LAB – Threat Server" });
   });
 
   // GET current route
@@ -622,6 +622,28 @@ function startServer() {
     }
   });
 
+  // POST optimize last mile — Agentic Engine
+  app.post("/api/last-mile/optimize", async function (req, res) {
+    var body = req.body || {};
+    var city = body.city || "Kochi";
+    var cargo = body.cargo || "Mixed Cargo 1.0T";
+    
+    try {
+      console.log("[POST /api/last-mile/optimize] Starting Agentic Loop for", city, "| Cargo:", cargo);
+      var route = await generateAgenticRoute(city, cargo);
+      
+      var data = readData();
+      data.last_mile_route = route;
+      writeData(data);
+      
+      io.emit("state_updated", data);
+      res.json({ route: route });
+    } catch (err) {
+      console.error("[Last-Mile Optimize API Error]", err);
+      res.status(500).json({ error: "Agentic generation failed." });
+    }
+  });
+
   // Socket.io connection log
   io.on("connection", function (socket) {
     console.log("[Socket.io] Connected:", socket.id);
@@ -635,7 +657,7 @@ function startServer() {
 
   httpServer.listen(PORT, function () {
     console.log("──────────────────────────────────────────────");
-    console.log("  ACM NEXUS 26 — Self-Healing Supply Chain");
+    console.log("  LOG LAB — Self-Healing Supply Chain");
     console.log("  Backend: http://localhost:" + PORT);
     console.log("  Groq Threat AI:    " + (process.env.GEMINI_API_KEY_THREAT ? "CONNECTED" : "NOT SET"));
     console.log("  Groq Dispatch AI:  " + (process.env.GROQ_API_KEY         ? "CONNECTED" : "NOT SET"));
