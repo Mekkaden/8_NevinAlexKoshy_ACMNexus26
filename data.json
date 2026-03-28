@@ -604,11 +604,11 @@
   "last_mile_route": [
     {
       "id": "stop1",
-      "recipient": "Electronics Dealer",
-      "address": "88 Outskirts Highway, Kochi",
+      "recipient": "Kochi Central Hub",
+      "address": "1 Main Street, Kochi",
       "pkg": "Electronics - High Priority",
       "window": "09:00 - 10:00",
-      "reasoning": "High priority cargo, nearest industrial location"
+      "reasoning": "High priority cargo, central location"
     },
     {
       "id": "stop2",
@@ -616,15 +616,15 @@
       "address": "12 Health Avenue, Kochi",
       "pkg": "Medical Supplies",
       "window": "10:00 - 11:00",
-      "reasoning": "Medical supplies are critical, nearest medical location"
+      "reasoning": "Medical supplies for hospital, nearby location"
     },
     {
       "id": "stop3",
-      "recipient": "Construction Company",
-      "address": "1 Main Street, Kochi",
+      "recipient": "Kochi Industrial Park",
+      "address": "88 Outskirts Highway, Kochi",
       "pkg": "Construction Materials, Automotive Parts, Textile Machinery",
       "window": "11:00 - 12:00",
-      "reasoning": "Remaining cargo, central location for multiple deliveries"
+      "reasoning": "Industrial area, bulk cargo delivery"
     }
   ]
 }
