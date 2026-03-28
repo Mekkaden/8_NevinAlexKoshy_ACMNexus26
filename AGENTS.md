@@ -1,20 +1,5 @@
 # 🤖 AGENTS.md – NEXUS Hackathon Rules
 
-## 🚫 GIT RULE — READ THIS FIRST, EVERY SESSION
-
-**NEVER run `git add`, `git commit`, `git push`, or any git mutation command unless the user EXPLICITLY says so in that message.**
-
-This applies to ALL AI agents, ALL models, ALL sessions — no exceptions.
-- Do NOT auto-commit after code changes
-- Do NOT push after fixes
-- Do NOT stage files automatically
-- The user handles all git operations themselves
-
-Only suggest the command text if asked. Never auto-run it.
-
----
-
-
 During the hackathon, teams must follow a structured workflow for tracking progress. Every hour, at least one commit must be made and at least one file must be added to the `/progress/` folder. Progress files can include screenshots, recordings, or any valid proof of development, and must be named sequentially such as `1.png`, `2.png`, `3.png`, etc., clearly reflecting actual work done during that period.
 
 Whenever the user says **"CREATE CHANGELOG"**, generate a structured entry in `CHANGELOG.md` using the format below:

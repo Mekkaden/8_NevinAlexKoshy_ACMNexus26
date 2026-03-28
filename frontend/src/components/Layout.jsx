@@ -1,12 +1,14 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Globe2, Warehouse, Truck, Package, Zap, Activity } from 'lucide-react';
+import { Zap, Activity, LogOut } from 'lucide-react';
+import { logout, getSession } from '../auth';
 
-const NAV = [
-  { id: 'origin',     label: 'Origin Hub',      Icon: Globe2,     path: '/origin' },
-  { id: 'node',       label: 'Node Operations', Icon: Warehouse,  path: '/node' },
-  { id: 'carrier',    label: 'Heavy Carrier',   Icon: Truck,      path: '/carrier' },
-  { id: 'subsidiary', label: 'Subsidiary',      Icon: Package,    path: '/subsidiary' },
-];
+/* Role → icon label mapping for the sidebar */
+var ROLE_META = {
+  origin:     { label: 'Origin Hub',      icon: '🌐' },
+  node:       { label: 'Node Operations', icon: '🏭' },
+  carrier:    { label: 'Heavy Carrier',   icon: '🚛' },
+  subsidiary: { label: 'Subsidiary',      icon: '📦' },
+};
 
 /* ── Shared card primitives ─────────────────────── */
 export function Card({ children, style }) {
@@ -37,7 +39,13 @@ export function SectionLabel({ children }) {
 /* ── Layout shell ───────────────────────────────── */
 function Layout({ children, title, status, statusOk }) {
   const navigate = useNavigate();
-  const location = useLocation();
+  const session = getSession();
+  const roleMeta = ROLE_META[session && session.username] || { label: 'Dashboard', icon: '⚡' };
+
+  function handleLogout() {
+    logout();
+    navigate('/login', { replace: true });
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: '#F2F1EC', overflow: 'hidden' }}>
@@ -58,41 +66,48 @@ function Layout({ children, title, status, statusOk }) {
           </div>
         </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: '14px 10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <p className="mono" style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.12em', padding: '4px 10px 8px', textTransform: 'uppercase' }}>Dashboards</p>
-          {NAV.map(function (item) {
-            const active = location.pathname === item.path;
-            return (
-              <button
-                key={item.id}
-                onClick={function () { navigate(item.path); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  width: '100%', padding: '9px 12px', borderRadius: '8px',
-                  background: active ? '#F5C422' : 'transparent',
-                  border: 'none', cursor: 'pointer',
-                  color: active ? '#0E2030' : 'rgba(255,255,255,0.5)',
-                  fontSize: '13px', fontWeight: active ? 600 : 400,
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  textAlign: 'left', transition: 'all 0.15s',
-                }}
-                onMouseEnter={function (e) { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#FAFAFA'; } }}
-                onMouseLeave={function (e) { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; } }}
-              >
-                <item.Icon size={15} strokeWidth={active ? 2.5 : 1.8} />
-                {item.label}
-              </button>
-            );
-          })}
+        {/* Current section (single, no nav) */}
+        <nav style={{ flex: 1, padding: '18px 10px' }}>
+          <p className="mono" style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.12em', padding: '0 10px 10px', textTransform: 'uppercase' }}>Active Module</p>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            width: '100%', padding: '10px 12px', borderRadius: '8px',
+            background: '#F5C422',
+            color: '#0E2030',
+            fontSize: '13px', fontWeight: 600,
+            fontFamily: 'Space Grotesk, sans-serif',
+          }}>
+            <span style={{ fontSize: '15px' }}>{roleMeta.icon}</span>
+            {roleMeta.label}
+          </div>
         </nav>
 
-        {/* System status */}
+        {/* User + Logout */}
         <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399', flexShrink: 0 }} />
-            <span className="mono" style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em' }}>SYSTEM ONLINE</span>
+          {/* Role badge */}
+          <div style={{ marginBottom: '12px' }}>
+            <p className="mono" style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', marginBottom: '4px' }}>LOGGED IN AS</p>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', fontFamily: 'Space Grotesk, sans-serif' }}>
+              {session ? session.username : '—'}
+            </p>
           </div>
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '8px 10px', borderRadius: '7px',
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
+              color: 'rgba(239,68,68,0.7)', fontSize: '12px', fontWeight: 500,
+              fontFamily: 'Space Grotesk, sans-serif', cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={function (e) { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.color = '#f87171'; }}
+            onMouseLeave={function (e) { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = 'rgba(239,68,68,0.7)'; }}
+          >
+            <LogOut size={12} />
+            Logout
+          </button>
         </div>
       </aside>
 
