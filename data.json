@@ -123,9 +123,15 @@
       "COK",
       "TVM"
     ],
-    "status": "active"
+    "status": "rerouted"
   },
-  "threats": [],
+  "threats": [
+    {
+      "city": "Mysore",
+      "timestamp": "2026-03-28T07:39:22.070Z",
+      "action": "Dynamically rerouted via Kochi"
+    }
+  ],
   "nodes": [
     {
       "id": "BLR",
@@ -604,11 +610,11 @@
   "last_mile_route": [
     {
       "id": "stop1",
-      "recipient": "Kochi Central Hub",
-      "address": "1 Main Street, Kochi",
-      "pkg": "Electronics - High Priority",
+      "recipient": "Electronics Dealer",
+      "address": "88 Outskirts Highway, Kochi",
+      "pkg": "Electronics",
       "window": "09:00 - 10:00",
-      "reasoning": "High priority cargo, central location"
+      "reasoning": "High Priority"
     },
     {
       "id": "stop2",
@@ -616,15 +622,15 @@
       "address": "12 Health Avenue, Kochi",
       "pkg": "Medical Supplies",
       "window": "10:00 - 11:00",
-      "reasoning": "Medical supplies for hospital, nearby location"
+      "reasoning": "Medical Emergency"
     },
     {
       "id": "stop3",
-      "recipient": "Kochi Industrial Park",
-      "address": "88 Outskirts Highway, Kochi",
+      "recipient": "Construction Company",
+      "address": "1 Main Street, Kochi",
       "pkg": "Construction Materials, Automotive Parts, Textile Machinery",
       "window": "11:00 - 12:00",
-      "reasoning": "Industrial area, bulk cargo delivery"
+      "reasoning": "Scheduled Delivery"
     }
   ]
 }
